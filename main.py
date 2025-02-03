@@ -1,18 +1,21 @@
+import sys
+from typing import Any
+
+import requests
+from PyQt6.QtCore import QTimer, QUrl
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
-    QMainWindow,
-    QPushButton,
-    QVBoxLayout,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QWidget,
-    QLineEdit,
+    QMainWindow,
+    QPushButton,
     QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import QUrl, QTimer
-from PyQt6.QtWebEngineWidgets import QWebEngineView
-import sys, requests
 
 RUN_WITH_SAILOR_STANDARDS = True
 DEGREE_SIGN = u'\N{DEGREE SIGN}'
@@ -25,6 +28,7 @@ class WayPointWidget(QWidget):
 
         # Main layout for the widget
         layout = QHBoxLayout()
+        # left, top, right, bottom
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
@@ -51,7 +55,7 @@ class WayPointWidget(QWidget):
         layout.addWidget(down_button)
 
         # Editable text field
-        self.line_edit = QLineEdit(text)
+        self.line_edit = QLineEdit()
         self.line_edit.setReadOnly(True)
         self.line_edit.returnPressed.connect(lambda: self._save_edit(on_edit))
         layout.addWidget(self.line_edit)
@@ -90,22 +94,12 @@ class Window(QMainWindow):
             <html>
             <head>
                 <title>Google Maps</title>
-                <style>
-                    body, html { margin: 0; height: 100%; width: 100%; }
-                    #map { height: 100%; }
-                </style>
-                <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCqwl8cO48QSwf9qcM_EDE9gLbFQHnWJgA"></script>
-                <script>
-                    function initMap() {
-                        var map = new google.maps.Map(document.getElementById('map'), {
-                            center: {lat: 37.2249991, lng: -80.4249983},
-                            zoom: 8
-                        });
-                    }
-                </script>
+                <!-- Add script to the <head> of your page to load the embeddable map component -->
+                <script type="module" src="https://js.arcgis.com/embeddable-components/4.31/arcgis-embeddable-components.esm.js"></script>
             </head>
-            <body onload="initMap()">
-                <div id="map"></div>
+            <body>
+                <!-- Add custom element to <body> of your page -->
+                <arcgis-embedded-map style="height:600px;width:700px;" item-id="feb19231fc8c4aa79e6317fca5e18026" theme="dark" portal-url="https://virginiatech.maps.arcgis.com" ></arcgis-embedded-map>
             </body>
             </html>
         """)
@@ -158,7 +152,9 @@ class Window(QMainWindow):
         self.list_widget.setItemWidget(list_item, waypoint_widget)
 
     def update_telemetry(self):
-        """Fetch and display telemetry data."""
+        """
+        Fetch and display telemetry data.
+        """
         boat_status = request_boat_status()
         telemetry_text = (
             f"Position: {boat_status['position'][0]}, {boat_status['position'][1]}\n"
@@ -175,7 +171,7 @@ class Window(QMainWindow):
         )
         self.telemetry_display.setText(telemetry_text)
 
-def request_boat_status() -> dict:
+def request_boat_status() -> dict[str, Any]:
     """
     Should return a dictionary with the following keys:
         position            | latitude, longitude tuple
@@ -191,10 +187,13 @@ def request_boat_status() -> dict:
         rudder_angle        | degrees
         current_waypoint    | latitude, longitude tuple
         current_route       | list of latitude, longitude tuples
+    :rtype: dict[str, Union[Tuple[float, float], str, float, int, List[Tuple[float, float]]]]
     """
     try:
+        # print("Requesting boat status...")
         boat_status = requests.get(TELEMETRY_SERVER_URL + "boat_status/get").json()
-    except:
+    except requests.exceptions.ConnectionError:
+        # print("Failed to connect to telemetry server.")
         boat_status = {
             "position": (0, 0),
             "state": "test",
@@ -206,7 +205,7 @@ def request_boat_status() -> dict:
             "sail_angle": 0,
             "rudder_angle": 0,
             "current_waypoint": (0, 0),
-            "current_route": (0, 0)
+            "current_route": (0, 0),
         }
     return boat_status
 
