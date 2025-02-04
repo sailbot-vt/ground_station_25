@@ -93,13 +93,12 @@ class Window(QMainWindow):
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Google Maps</title>
                 <!-- Add script to the <head> of your page to load the embeddable map component -->
                 <script type="module" src="https://js.arcgis.com/embeddable-components/4.31/arcgis-embeddable-components.esm.js"></script>
             </head>
             <body>
                 <!-- Add custom element to <body> of your page -->
-                <arcgis-embedded-map style="height:600px;width:700px;" item-id="feb19231fc8c4aa79e6317fca5e18026" theme="dark" portal-url="https://virginiatech.maps.arcgis.com" ></arcgis-embedded-map>
+                <arcgis-embedded-map style="height:600px;width:700px;" item-id="feb19231fc8c4aa79e6317fca5e18026" theme="dark" portal-url="https://virginiatech.maps.arcgis.com" legend-enabled ></arcgis-embedded-map>
             </body>
             </html>
         """)
