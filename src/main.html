@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Sailboat Tracker</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+    <script src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
+    <!-- External RotatedMarker plugin -->
+    <style>
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script>
+        var map = L.map('map').setView([36.983731367697374, -76.29555376681454], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+        }).addTo(map);
+
+        var boatMarker = L.marker([36.983731367697374, -76.29555376681454]).addTo(map)
+            .bindPopup("Sailboat Location");
+
+        function updateBoat(lat, lon) {
+            boatMarker.setLatLng([lat, lon])
+                .bindPopup("Sailboat Location: " + lat.toFixed(5) + ", " + lon.toFixed(5));
+        }
+
+        function addWindArrow(lat, lon, windDir, windSpeed) {
+            // Skip adding if too far from the boat
+            if (Math.abs(lat - boatMarker.getLatLng().lat) > 0.5 || Math.abs(lon - boatMarker.getLatLng().lng) > 0.5) {
+                return;
+            }
+
+            var windIcon = L.icon({
+                iconUrl: "http://clipart-library.com/images_k/arrow-image-transparent/arrow-image-transparent-9.png",
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+
+            var windArrowMarker = L.marker([lat, lon], {
+                icon: windIcon,
+                rotationAngle: windDir,
+                rotationOrigin: "center"
+            }).addTo(map);
+
+            windArrowMarker.bindPopup(`Wind: ${windDir}°, ${windSpeed} knots`);
+        }
+
+        function clearWindArrows() {
+            map.eachLayer(function (layer) {
+                if (layer instanceof L.Marker && layer.getPopup() && layer.getPopup().getContent().includes("Wind:")) {
+                    map.removeLayer(layer);
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
