@@ -9,9 +9,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 
 TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
 
-# HTML map with Leaflet.js
 HTML_MAP = open("main.html").read()
-
 
 class MapApp(QMainWindow):
     def __init__(self):
@@ -19,18 +17,18 @@ class MapApp(QMainWindow):
         self.setWindowTitle("Live Sailboat Tracker")
         self.setGeometry(100, 100, 800, 600)
 
-        # Web View to display Leaflet map
         self.browser = QWebEngineView()
         self.browser.setHtml(HTML_MAP)
         self.setCentralWidget(self.browser)
 
-        # Timer to update location every 5 seconds
+        # Timer to run functions every 5 seconds
         self.timer = QTimer()
         self.timer.timeout.connect(self.clear_map)
         self.timer.timeout.connect(self.update_location)
         self.timer.timeout.connect(self.update_wind_data)
         self.timer.start(5000)
     def update_location(self):
+        """Update the map with the latest boat location."""
         boat_data = self.get_boat_location()
         if boat_data:
             lat, lon = boat_data
@@ -38,9 +36,11 @@ class MapApp(QMainWindow):
             self.browser.page().runJavaScript(js_code)
 
     def clear_map(self):
+        """Clear all wind arrows from the map."""
         self.browser.page().runJavaScript("clearWindArrows();")
 
     def get_boat_location(self):
+        """Fetch boat location from telemetry server."""
         try:
             boat_status = {
                 "latitude": 36.983731367697374,
@@ -66,6 +66,7 @@ class MapApp(QMainWindow):
 
 
 def get_buoy_wind_data():
+    """Fetch wind data from NOAA buoys."""
     url = "https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt"
     try:
         response = requests.get(url)
@@ -80,7 +81,6 @@ def get_buoy_wind_data():
             )
         ]
 
-        # Read data into pandas
         df = pd.read_csv(
             StringIO(raw_data),
             comment="#",
@@ -91,7 +91,6 @@ def get_buoy_wind_data():
             keep_default_na=True,
         )
 
-        # Extract relevant columns
         df = df[["LAT (deg)", "LON (deg)", "WDIR (degT)", "WSPD (m/s)"]].dropna()
         df.rename(
             columns={
@@ -103,20 +102,18 @@ def get_buoy_wind_data():
             inplace=True,
         )
 
-        return df.to_dict(orient="records")  # Convert to list of dictionaries
-
+        return df.to_dict(orient="records")
     except Exception as e:
         print(f"Error fetching buoy data: {e}")
         return []
 
 
 def get_station_wind_data():
+    """Fetch wind data from NOAA weather stations."""
     url = "https://aviationweather.gov/data/cache/metars.cache.csv"
     try:
-        # Read data into pandas
         df = pd.read_csv(url, skiprows=5, na_values="VRB")
 
-        # Extract relevant columns
         df = df[["latitude", "longitude", "wind_dir_degrees", "wind_speed_kt"]].dropna()
 
         # Convert wind speed from knots to m/s
@@ -132,13 +129,12 @@ def get_station_wind_data():
         )
         df = df.astype(float)
 
-        return df.to_dict(orient="records")  # Convert to list of dictionaries
+        return df.to_dict(orient="records")
     except Exception as e:
         print(f"Error fetching station data: {e}")
         return []
 
 
-# Run the PyQt app
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MapApp()
