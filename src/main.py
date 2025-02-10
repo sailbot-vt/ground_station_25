@@ -11,6 +11,9 @@ TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
 
 HTML_MAP = open("main.html").read()
 
+# data from https://virginiatech.maps.arcgis.com/home/item.html?id=cb1886ff0a9d4156ba4d2fadd7e8a139
+
+
 class MapApp(QMainWindow):
     def __init__(self):
         super().__init__()
