@@ -17,7 +17,7 @@ HTML_MAP = open("main.html").read()
 class MapApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Live Sailboat Tracker")
+        self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
 
         self.browser = QWebEngineView()
