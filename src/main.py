@@ -34,13 +34,13 @@ class MapApp(QMainWindow):
         """Update the map with the latest boat location."""
         boat_data = self.get_boat_location()
         if boat_data:
-            lat, lon = boat_data
-            js_code = f"updateBoat({lat}, {lon});"
+            lat, lon, heading = boat_data
+            js_code = f"map.update_boat({lat}, {lon}, {heading});"
             self.browser.page().runJavaScript(js_code)
 
     def clear_map(self):
         """Clear all wind arrows from the map."""
-        self.browser.page().runJavaScript("clearWindArrows();")
+        self.browser.page().runJavaScript("map.clear_wind_arrows();")
 
     def get_boat_location(self):
         """Fetch boat location from telemetry server."""
@@ -48,12 +48,17 @@ class MapApp(QMainWindow):
             boat_status = {
                 "latitude": 36.983731367697374,
                 "longitude": -76.29555376681454,
+                "heading": 0,
             }
             # boat_status = requests.get(TELEMETRY_SERVER_URL + "boat_status/get").json()
-            return boat_status["latitude"], boat_status["longitude"]
+            return (
+                boat_status["latitude"],
+                boat_status["longitude"],
+                boat_status["heading"],
+            )
         except Exception as e:
             print(f"Error fetching location: {e}")
-            return (0, 0)
+            return (0, 0, 0)
 
     def update_wind_data(self):
         """Fetch wind data and update the map with wind arrows."""
@@ -64,7 +69,9 @@ class MapApp(QMainWindow):
             wind_dir = wind["wind_dir"]
             wind_speed = wind["wind_speed"]
 
-            js_code = f"addWindArrow({lat}, {lon}, {wind_dir - 360}, {wind_speed});"
+            js_code = (
+                f"map.add_wind_arrow({lat}, {lon}, {wind_dir - 180}, {wind_speed});"
+            )
             self.browser.page().runJavaScript(js_code)
 
 
