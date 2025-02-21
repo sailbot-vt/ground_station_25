@@ -1,9 +1,11 @@
 import sys
 from io import StringIO
 
+import numpy as np
 import pandas as pd
 import requests
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QObject, QTimer, QVariant, pyqtSlot
+from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
@@ -13,6 +15,16 @@ HTML_MAP = open("main.html").read()
 
 # data from https://virginiatech.maps.arcgis.com/home/item.html?id=cb1886ff0a9d4156ba4d2fadd7e8a139
 
+class Bridge(QObject):
+    """Bridge class to receive data from JavaScript."""
+
+    @pyqtSlot(QVariant)
+    def receive_mouse_coords(self, coords):
+        """Handle mouse coordinates sent from JavaScript."""
+        if coords and "lat" in coords and "lng" in coords:
+            print(f"Mouse clicked at: Lat {coords['lat']}, Lng {coords['lng']}")
+        else:
+            print("Invalid coordinates received from JavaScript.")
 
 class MapApp(QMainWindow):
     def __init__(self):
@@ -24,12 +36,19 @@ class MapApp(QMainWindow):
         self.browser.setHtml(HTML_MAP)
         self.setCentralWidget(self.browser)
 
+        # Create bridge instance
+        self.bridge = Bridge()
+
+        # Expose the bridge object to JavaScript
+        self.browser.page().setWebChannel(QWebChannel())
+        self.browser.page().webChannel().registerObject("pyObj", self.bridge)
         # Timer to run functions every 5 seconds
         self.timer = QTimer()
         self.timer.timeout.connect(self.clear_map)
         self.timer.timeout.connect(self.update_location)
         self.timer.timeout.connect(self.update_wind_data)
         self.timer.start(5000)
+
     def update_location(self):
         """Update the map with the latest boat location."""
         boat_data = self.get_boat_location()
@@ -48,7 +67,7 @@ class MapApp(QMainWindow):
             boat_status = {
                 "latitude": 36.983731367697374,
                 "longitude": -76.29555376681454,
-                "heading": 0,
+                "heading": np.random.randint(0, 360),
             }
             # boat_status = requests.get(TELEMETRY_SERVER_URL + "boat_status/get").json()
             return (
