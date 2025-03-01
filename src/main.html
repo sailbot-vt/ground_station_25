@@ -39,11 +39,23 @@
             })
 
             constructor() {
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('service-worker.js')
+                        .then(registration => {
+                            console.log('Service Worker registered:', registration);
+                        })
+                        .catch(error => {
+                            console.error('Service Worker registration failed:', error);
+                        });
+                } else {
+                    console.log('Service Worker not supported in this browser.');
+                }
                 this.boat = {
                     heading: 0,
                     location: [36.983731367697374, -76.29555376681454]
                 }
                 this.map = L.map("map", map_interface.map_options)
+                this.waypoints = []
 
                 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                     maxZoom: 18
@@ -56,17 +68,53 @@
                 })
                     .addTo(this.map)
                     .bindPopup("Sailboat Location:\n ${}")
-                this.lastMouseCoords = { lat: null, lng: null };
-                this.map.on("click", (e) => {
-                    let coords = { lat: e.latlng.lat, lng: e.latlng.lng };
-                    console.log("Sending to Python:", coords);
+                this.map.on("click", e => {
+                    this.add_waypoint(e.latlng.lat, e.latlng.lng)
+                })
+                this.get_waypoints()
+            }
 
-                    if (window.pyObj) {
-                        window.pyObj.receive_mouse_coords(coords); // Call Python function
-                    } else {
-                        console.error("PyQt bridge not available.");
+            get_waypoints() {
+                fetch('/send-data', {
+                    method: 'POST',
+                    body: JSON.stringify(self.waypoints),
+                    headers: {
+                        'Content-Type': 'application/json'
                     }
-                });
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Server Response:', data);
+                        alert('Server Response: ' + JSON.stringify(data));
+                    })
+                    .catch(err => console.error('Error:', err));
+            }
+
+
+            add_waypoint(lat, lon) {
+                this.waypoints.push([lat, lon])
+                L.marker([lat, lon]).addTo(this.map)
+            }
+
+            remove_waypoint(index) {
+                this.waypoints.splice(index, 1)
+                this.map.eachLayer(layer => {
+                    if (layer instanceof L.Marker) {
+                        this.map.removeLayer(layer)
+                    }
+                })
+                this.waypoints.forEach(waypoint => {
+                    L.marker(waypoint).addTo(this.map)
+                })
+            }
+
+            clear_waypoints() {
+                this.waypoints = []
+                this.map.eachLayer(layer => {
+                    if (layer instanceof L.Marker) {
+                        this.map.removeLayer(layer)
+                    }
+                })
             }
 
             update_boat(lat, lon, heading) {

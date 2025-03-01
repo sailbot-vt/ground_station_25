@@ -1,30 +1,95 @@
+import os
 import sys
 from io import StringIO
 
 import numpy as np
 import pandas as pd
 import requests
-from PyQt5.QtCore import QObject, QTimer, QVariant, pyqtSlot
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
 
-HTML_MAP = open("main.html").read()
+
+# Check if the main.html file exists before loading it
+HTML_MAP_PATH = "main.html"
+if not os.path.exists(HTML_MAP_PATH):
+    print(f"Error: {HTML_MAP_PATH} not found.")
+    sys.exit(1)
+else:
+    HTML_MAP = open(HTML_MAP_PATH).read()
+
 
 # data from https://virginiatech.maps.arcgis.com/home/item.html?id=cb1886ff0a9d4156ba4d2fadd7e8a139
 
-class Bridge(QObject):
-    """Bridge class to receive data from JavaScript."""
 
-    @pyqtSlot(QVariant)
-    def receive_mouse_coords(self, coords):
-        """Handle mouse coordinates sent from JavaScript."""
-        if coords and "lat" in coords and "lng" in coords:
-            print(f"Mouse clicked at: Lat {coords['lat']}, Lng {coords['lng']}")
-        else:
-            print("Invalid coordinates received from JavaScript.")
+class EditableListWidget(QListWidget):
+    def __init__(self):
+        super().__init__()
+        self.__persistent_editor_activated_flag = False
+        self.__consecutive_add_when_enter_pressed_flag = True
+
+    def addItem(self, item):
+        super().addItem(item)
+        self.setCurrentItem(item)
+        self.openPersistentEditor(item)  # open the editor
+        self.setFocus()
+        self.__persistent_editor_activated_flag = True
+
+    def setConsecutiveAddWhenEnterPressed(self, f: bool):
+        self.__consecutive_add_when_enter_pressed_flag = f
+
+    def mousePressEvent(self, e):  # make editor closed when user clicked somewhere else
+        if self.__persistent_editor_activated_flag:
+            self.closeIfPersistentEditorStillOpen()
+        return super().mousePressEvent(e)
+
+    def mouseDoubleClickEvent(
+        self, e
+    ):  # Let user edit the item when double clicking certain item
+        item = self.itemAt(e.pos())
+        self.openPersistentEditor(item)
+        self.__persistent_editor_activated_flag = True
+        return super().mouseDoubleClickEvent(e)
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Return:  # make editor closed when user pressed enter
+            self.closeIfPersistentEditorStillOpen()
+            if self.__consecutive_add_when_enter_pressed_flag:
+                pass
+            else:
+                return
+        elif (
+            e.key() == 16777235 or e.key() == 16777237
+        ):  # make editor closed when user pressed up or down button
+            self.closeIfPersistentEditorStillOpen()
+            return super().keyPressEvent(e)
+        elif e.key() == Qt.Key_F2:  # Let user edit the item when pressing F2
+            item = self.currentItem()
+            if item:
+                self.openPersistentEditor(item)
+                self.__persistent_editor_activated_flag = True
+        return super().keyPressEvent(e)
+
+    def closeIfPersistentEditorStillOpen(self):  # Check if user are editing item
+        item = self.currentItem()
+        if item:
+            if self.isPersistentEditorOpen(item):
+                self.closePersistentEditor(item)
+                self.__persistent_editor_activated_flag = False
+
 
 class MapApp(QMainWindow):
     def __init__(self):
@@ -32,30 +97,76 @@ class MapApp(QMainWindow):
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
 
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.main_layout = QHBoxLayout()
+
+        self.telemetry_display = QTextEdit()
+        self.telemetry_display.setReadOnly(True)
+        self.telemetry_display.setMinimumWidth(200)
+        self.main_layout.addWidget(self.telemetry_display, 0)
+
         self.browser = QWebEngineView()
         self.browser.setHtml(HTML_MAP)
-        self.setCentralWidget(self.browser)
+        self.main_layout.addWidget(self.browser, 1)
 
-        # Create bridge instance
-        self.bridge = Bridge()
+        self.right_widget = EditableListWidget()
+        self.right_widget.setLayout(QVBoxLayout())
+        self.main_layout.addWidget(self.right_widget, 0)
 
-        # Expose the bridge object to JavaScript
+        self.central_widget.setLayout(self.main_layout)
+
+        self.add_waypoint_button = QPushButton("Add Waypoint")
+        self.add_waypoint_button.clicked.connect(self.add_waypoint)
+        self.right_widget.layout().addWidget(self.add_waypoint_button)
+
+        test = QListWidgetItem("(1, 0)")
+        self.right_widget.addItem(test)
+
         self.browser.page().setWebChannel(QWebChannel())
-        self.browser.page().webChannel().registerObject("pyObj", self.bridge)
         # Timer to run functions every 5 seconds
         self.timer = QTimer()
         self.timer.timeout.connect(self.clear_map)
         self.timer.timeout.connect(self.update_location)
         self.timer.timeout.connect(self.update_wind_data)
+        self.timer.timeout.connect(self.update_waypoints)
         self.timer.start(5000)
+
+    def update_waypoints(self):
+        """Update the map with waypoints."""
+        for item in self.right_widget.selectedItems():
+            # Assuming waypoints are in the form "(lat, lon)"
+            lat, lon = map(float, item.text().strip("()").split(","))
+            js_code = f"map.add_waypoint({lat}, {lon});"
+            self.browser.page().runJavaScript(js_code)
+
+        # get waypoints from js
+        print(requests.get("http://localhost:5000/waypoints"))
+        # waypoints = requests.get("http://localhost:5000/waypoints").json()["waypoints"]
+        # print(waypoints)
+        # for waypoint in waypoints:
+        #     self.right_widget.addItem(
+        #         QListWidgetItem(f"({waypoint['lat']}, {waypoint['lon']})")
+        #     )
+
+    def add_waypoint(self):
+        """Add a waypoint to the list."""
+        item = QListWidgetItem("")  # Replace with actual lat/lon
+        self.right_widget.addItem(item)
 
     def update_location(self):
         """Update the map with the latest boat location."""
+
         boat_data = self.get_boat_location()
         if boat_data:
             lat, lon, heading = boat_data
             js_code = f"map.update_boat({lat}, {lon}, {heading});"
             self.browser.page().runJavaScript(js_code)
+
+            # Display telemetry in the QTextEdit widget
+            self.telemetry_display.append(
+                f"Boat Location: Lat {lat}, Lon {lon}, Heading {heading}"
+            )
 
     def clear_map(self):
         """Clear all wind arrows from the map."""
@@ -98,7 +209,9 @@ def get_buoy_wind_data():
     """Fetch wind data from NOAA buoys."""
     url = "https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt"
     try:
-        response = requests.get(url)
+        response = requests.get(
+            url,
+        )
         raw_data = response.text
 
         # Extract header labels
