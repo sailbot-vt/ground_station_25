@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
 )
 
 TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
+WAYPOINTS_SERVER_URL = "http://localhost:3000/waypoints"
 
 
 # Check if the main.html file exists before loading it
@@ -40,6 +41,7 @@ class EditableListWidget(QListWidget):
         super().__init__()
         self.__persistent_editor_activated_flag = False
         self.__consecutive_add_when_enter_pressed_flag = True
+        self.setStyleSheet("QListWidget::item { margin: 5px; }")
 
     def addItem(self, item):
         super().addItem(item)
@@ -51,7 +53,9 @@ class EditableListWidget(QListWidget):
     def setConsecutiveAddWhenEnterPressed(self, f: bool):
         self.__consecutive_add_when_enter_pressed_flag = f
 
-    def mousePressEvent(self, e):  # make editor closed when user clicked somewhere else
+    def mousePressEvent(
+        self, e
+    ):  # make editor closed when user clicked somewhere else
         if self.__persistent_editor_activated_flag:
             self.closeIfPersistentEditorStillOpen()
         return super().mousePressEvent(e)
@@ -65,14 +69,19 @@ class EditableListWidget(QListWidget):
         return super().mouseDoubleClickEvent(e)
 
     def keyPressEvent(self, e):
-        if e.key() == Qt.Key_Return:  # make editor closed when user pressed enter
+        if e.key() == Qt.Key_Tab:  # add new item when user pressed tab
+            self.addItem(QListWidgetItem())
+            return
+        elif (
+            e.key() == Qt.Key_Return
+        ):  # make editor closed when user pressed enter
             self.closeIfPersistentEditorStillOpen()
             if self.__consecutive_add_when_enter_pressed_flag:
                 pass
             else:
                 return
         elif (
-            e.key() == 16777235 or e.key() == 16777237
+            e.key() == Qt.Key_Up or e.key() == Qt.Key_Down
         ):  # make editor closed when user pressed up or down button
             self.closeIfPersistentEditorStillOpen()
             return super().keyPressEvent(e)
@@ -83,7 +92,9 @@ class EditableListWidget(QListWidget):
                 self.__persistent_editor_activated_flag = True
         return super().keyPressEvent(e)
 
-    def closeIfPersistentEditorStillOpen(self):  # Check if user are editing item
+    def closeIfPersistentEditorStillOpen(
+        self,
+    ):  # Check if user are editing item
         item = self.currentItem()
         if item:
             if self.isPersistentEditorOpen(item):
@@ -120,7 +131,7 @@ class MapApp(QMainWindow):
         self.add_waypoint_button.clicked.connect(self.add_waypoint)
         self.right_widget.layout().addWidget(self.add_waypoint_button)
 
-        test = QListWidgetItem("(1, 0)")
+        test = QListWidgetItem()
         self.right_widget.addItem(test)
 
         self.browser.page().setWebChannel(QWebChannel())
@@ -141,17 +152,15 @@ class MapApp(QMainWindow):
             self.browser.page().runJavaScript(js_code)
 
         # get waypoints from js
-        print(requests.get("http://localhost:5000/waypoints"))
-        # waypoints = requests.get("http://localhost:5000/waypoints").json()["waypoints"]
-        # print(waypoints)
-        # for waypoint in waypoints:
-        #     self.right_widget.addItem(
-        #         QListWidgetItem(f"({waypoint['lat']}, {waypoint['lon']})")
-        #     )
+        waypoints = requests.get(WAYPOINTS_SERVER_URL).json()
+        for waypoint in waypoints:
+            self.right_widget.addItem(
+                QListWidgetItem(f"({waypoint[0]}, {waypoint[1]})")
+            )
 
     def add_waypoint(self):
         """Add a waypoint to the list."""
-        item = QListWidgetItem("")  # Replace with actual lat/lon
+        item = QListWidgetItem()  # Replace with actual lat/lon
         self.right_widget.addItem(item)
 
     def update_location(self):
@@ -199,9 +208,7 @@ class MapApp(QMainWindow):
             wind_dir = wind["wind_dir"]
             wind_speed = wind["wind_speed"]
 
-            js_code = (
-                f"map.add_wind_arrow({lat}, {lon}, {wind_dir - 180}, {wind_speed});"
-            )
+            js_code = f"map.add_wind_arrow({lat}, {lon}, {wind_dir - 180}, {wind_speed});"
             self.browser.page().runJavaScript(js_code)
 
 
@@ -219,7 +226,8 @@ def get_buoy_wind_data():
         labels = [
             f"{i} ({j})"
             for i, j in zip(
-                lines[0].replace("#", "").split(), lines[1].replace("#", "").split()
+                lines[0].replace("#", "").split(),
+                lines[1].replace("#", "").split(),
             )
         ]
 
@@ -233,7 +241,9 @@ def get_buoy_wind_data():
             keep_default_na=True,
         )
 
-        df = df[["LAT (deg)", "LON (deg)", "WDIR (degT)", "WSPD (m/s)"]].dropna()
+        df = df[
+            ["LAT (deg)", "LON (deg)", "WDIR (degT)", "WSPD (m/s)"]
+        ].dropna()
         df.rename(
             columns={
                 "LAT (deg)": "lat",
@@ -256,7 +266,9 @@ def get_station_wind_data():
     try:
         df = pd.read_csv(url, skiprows=5, na_values="VRB")
 
-        df = df[["latitude", "longitude", "wind_dir_degrees", "wind_speed_kt"]].dropna()
+        df = df[
+            ["latitude", "longitude", "wind_dir_degrees", "wind_speed_kt"]
+        ].dropna()
 
         # Convert wind speed from knots to m/s
         df["wind_speed"] = df["wind_speed_kt"] * 0.514444

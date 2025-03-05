@@ -20,6 +20,7 @@
 <body>
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
     <script src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
+
     <div id="map"></div>
     <script>
         class map_interface {
@@ -39,17 +40,6 @@
             })
 
             constructor() {
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('service-worker.js')
-                        .then(registration => {
-                            console.log('Service Worker registered:', registration);
-                        })
-                        .catch(error => {
-                            console.error('Service Worker registration failed:', error);
-                        });
-                } else {
-                    console.log('Service Worker not supported in this browser.');
-                }
                 this.boat = {
                     heading: 0,
                     location: [36.983731367697374, -76.29555376681454]
@@ -71,29 +61,35 @@
                 this.map.on("click", e => {
                     this.add_waypoint(e.latlng.lat, e.latlng.lng)
                 })
-                this.get_waypoints()
             }
 
-            get_waypoints() {
-                fetch('/send-data', {
-                    method: 'POST',
-                    body: JSON.stringify(self.waypoints),
-                    headers: {
-                        'Content-Type': 'application/json'
+            async send_waypoint_to_server() {
+                try {
+                    const response = await fetch("http://localhost:3000/waypoints", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        // only send new waypoints
+                        body: JSON.stringify({
+                            curr_waypoint: this.waypoints[this.waypoints.length - 1]
+                        }),
+                    });
+
+                    if (response.ok) {
+                        console.log("Waypoint successfully sent to server");
+                    } else {
+                        console.error("Failed to send waypoint to server");
                     }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log('Server Response:', data);
-                        alert('Server Response: ' + JSON.stringify(data));
-                    })
-                    .catch(err => console.error('Error:', err));
+                } catch (error) {
+                    console.error("Error sending waypoint:", error);
+                }
             }
-
 
             add_waypoint(lat, lon) {
                 this.waypoints.push([lat, lon])
                 L.marker([lat, lon]).addTo(this.map)
+                this.send_waypoints_to_server();
             }
 
             remove_waypoint(index) {
@@ -106,6 +102,7 @@
                 this.waypoints.forEach(waypoint => {
                     L.marker(waypoint).addTo(this.map)
                 })
+                this.send_waypoints_to_server();
             }
 
             clear_waypoints() {
@@ -115,6 +112,7 @@
                         this.map.removeLayer(layer)
                     }
                 })
+                this.send_waypoints_to_server();
             }
 
             update_boat(lat, lon, heading) {
