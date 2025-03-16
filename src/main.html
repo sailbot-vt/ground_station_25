@@ -5,6 +5,9 @@
     <title>Sailboat Tracker</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+    <script src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
+    <script src="qwebchannel.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
     <style>
         #map {
@@ -18,8 +21,6 @@
 </head>
 
 <body>
-    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
-    <script src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
 
     <div id="map"></div>
     <script>
@@ -46,115 +47,72 @@
                 }
                 this.map = L.map("map", map_interface.map_options)
                 this.waypoints = []
-
+                
                 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                     maxZoom: 18
                 }).addTo(this.map)
+
+                // Click event to add waypoint
+                this.map.on("click", e => {
+                    this.add_waypoint(e.latlng.lat, e.latlng.lng);
+                })
+
+                // Right-click event to remove waypoint
+                this.map.on("contextmenu", e => {
+                    let closest_index = -1
+                    let closest_distance = Infinity
+                    this.waypoints.forEach((waypoint, index) => {
+                        const distance = Math.sqrt(
+                            (waypoint[0] - e.latlng.lat) ** 2 +
+                            (waypoint[1] - e.latlng.lng) ** 2
+                        )
+                        if (distance < closest_distance) {
+                            closest_index = index
+                            closest_distance = distance
+                        }
+                    })
+                    if (closest_index !== -1) {
+                        this.remove_waypoint(closest_index);
+                    }
+                })
 
                 this.boat_marker = L.marker(this.boat.location, {
                     icon: map_interface.boat_icon,
                     rotationAngle: this.boat.heading,
                     rotationOrigin: "center"
-                })
-                    .addTo(this.map)
-                    .bindPopup("Sailboat Location:\n ${}")
-                this.map.on("click", e => {
-                    this.add_waypoint(e.latlng.lat, e.latlng.lng)
-                })
+                }).addTo(this.map)
             }
 
-            async send_waypoint_to_server() {
-                try {
-                    const response = await fetch("http://localhost:3000/waypoints", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        // only send new waypoints
-                        body: JSON.stringify({
-                            curr_waypoint: this.waypoints[this.waypoints.length - 1]
-                        }),
-                    });
-
-                    if (response.ok) {
-                        console.log("Waypoint successfully sent to server");
-                    } else {
-                        console.error("Failed to send waypoint to server");
-                    }
-                } catch (error) {
-                    console.error("Error sending waypoint:", error);
+            // Send waypoints to PyQt
+            send_waypoints_to_pyqt() {
+                console.log("Sending waypoints to PyQt")
+                if (window.pyqtInterface) {
+                    console.log("Sent waypoints to PyQt")
+                    window.pyqtInterface.update_waypoints(this.waypoints);
                 }
             }
 
             add_waypoint(lat, lon) {
-                this.waypoints.push([lat, lon])
-                L.marker([lat, lon]).addTo(this.map)
-                this.send_waypoints_to_server();
+                this.waypoints.push([lat, lon]);
+                L.marker([lat, lon]).addTo(this.map);
+                this.send_waypoints_to_pyqt(); // Send the updated waypoints to PyQt
             }
 
             remove_waypoint(index) {
-                this.waypoints.splice(index, 1)
+                this.waypoints.splice(index, 1);
                 this.map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) {
-                        this.map.removeLayer(layer)
+                    if (layer instanceof L.Marker && !layer._icon.src.includes("boat.png")) {
+                        this.map.removeLayer(layer);
                     }
-                })
+                });
                 this.waypoints.forEach(waypoint => {
-                    L.marker(waypoint).addTo(this.map)
-                })
-                this.send_waypoints_to_server();
+                    L.marker(waypoint).addTo(this.map);
+                });
+                this.send_waypoints_to_pyqt(); // Send the updated waypoints to PyQt
             }
 
-            clear_waypoints() {
-                this.waypoints = []
-                this.map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) {
-                        this.map.removeLayer(layer)
-                    }
-                })
-                this.send_waypoints_to_server();
-            }
-
-            update_boat(lat, lon, heading) {
-                this.boat.location = [lat, lon]
-                this.boat.heading = heading
-                this.boat_marker
-                    .setLatLng(this.boat.location)
-                    .bindPopup("Sailboat Location: " + lat.toFixed(5) + ", " + lon.toFixed(5))
-            }
-
-            add_wind_arrow(lat, lon, wind_dir, wind_speed) {
-                // Skip adding if too far from the boat
-                if (
-                    Math.abs(lat - this.boat.location[0]) > 0.5 ||
-                    Math.abs(lon - this.boat.location[1]) > 0.5
-                ) {
-                    return
-                }
-
-                var windArrowMarker = L.marker([lat, lon], {
-                    icon: map_interface.wind_icon,
-                    rotationAngle: wind_dir,
-                    rotationOrigin: "center"
-                }).addTo(this.map)
-
-                windArrowMarker.bindPopup(`Wind: ${wind_dir}°, ${wind_speed} m/s`)
-            }
-
-            clear_wind_arrows() {
-                this.map.eachLayer(layer => {
-                    if (layer instanceof L.Marker) {
-                        const popup = layer.getPopup()
-                        const content = popup?.getContent()
-                        if (
-                            content &&
-                            typeof content === "string" &&
-                            content.includes("Wind:")
-                        ) {
-                            this.map.removeLayer(layer)
-                        }
-                    }
-                })
+            focus_map_on_waypoint(lat, lon) {
+                this.map.setView([lat, lon], 15);
             }
         }
         map = new map_interface();

@@ -2,30 +2,42 @@ import os
 import sys
 from io import StringIO
 
+
 import numpy as np
 import pandas as pd
 import requests
-from PyQt5.QtCore import Qt, QTimer
+
+from PyQt5.QtCore import (
+    Qt,
+    QThread,
+    QTimer,
+    QCoreApplication,
+    pyqtSignal,
+    QUrl,
+    QObject,
+    pyqtSlot,
+)
 from PyQt5.QtWebChannel import QWebChannel
 from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QListWidgetItem
 from PyQt5.QtWidgets import (
     QApplication,
-    QHBoxLayout,
-    QListWidget,
-    QListWidgetItem,
-    QMainWindow,
-    QPushButton,
-    QTextEdit,
-    QVBoxLayout,
     QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTextEdit,
+    QListWidget,
+    QPushButton,
+    QLineEdit,
+    QLabel,
 )
+
 
 TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
 WAYPOINTS_SERVER_URL = "http://localhost:3000/waypoints"
 
 
-# Check if the main.html file exists before loading it
-HTML_MAP_PATH = "main.html"
+HTML_MAP_PATH = os.getcwd() + "/src/main.html"
 if not os.path.exists(HTML_MAP_PATH):
     print(f"Error: {HTML_MAP_PATH} not found.")
     sys.exit(1)
@@ -33,192 +45,188 @@ else:
     HTML_MAP = open(HTML_MAP_PATH).read()
 
 
-# data from https://virginiatech.maps.arcgis.com/home/item.html?id=cb1886ff0a9d4156ba4d2fadd7e8a139
+class TelemetryUpdater(QThread):
+    boat_data_fetched = pyqtSignal(
+        dict
+    )  # Signal to send boat data to the main thread
 
-
-class EditableListWidget(QListWidget):
     def __init__(self):
         super().__init__()
-        self.__persistent_editor_activated_flag = False
-        self.__consecutive_add_when_enter_pressed_flag = True
-        self.setStyleSheet("QListWidget::item { margin: 5px; }")
 
-    def addItem(self, item):
-        super().addItem(item)
-        self.setCurrentItem(item)
-        self.openPersistentEditor(item)  # open the editor
-        self.setFocus()
-        self.__persistent_editor_activated_flag = True
+    def get_boat_data(self):
+        """Fetch boat data from telemetry server."""
+        try:
+            boat_status = requests.get(TELEMETRY_SERVER_URL).json()
+        except requests.RequestException:
+            print("Not able to fetch data from telemetry server.")
+            boat_status = {
+                "position": [36.983731367697374, -76.29555376681454],
+                "state": "N/A",
+                "speed": 0,
+                "bearing": 0,
+                "heading": np.random.randint(0, 360),
+                "true_wind_speed": 0,
+                "true_wind_angle": 0,
+                "apparent_wind_speed": 0,
+                "apparent_wind_angle": 0,
+                "sail_angle": 0,
+                "rudder_angle": 0,
+                "current_waypoint_index": 0,
+                "current_route": [],
+                "parameters": {},
+                "vesc_data_rpm": 0,
+                "vesc_data_duty_cycle": 0.0,
+                "vesc_data_amp_hours": 0.0,
+                "vesc_data_amp_hours_charged": 0,
+                "vesc_data_current_to_vesc": 0,
+                "vesc_data_voltage_to_motor": 0,
+                "vesc_data_voltage_to_vesc": 0,
+                "vesc_data_wattage_to_motor": 0,
+                "vesc_data_time_since_vesc_startup_in_ms": 0,
+                "vesc_data_motor_temperature": 0,
+            }
+        self.boat_data_fetched.emit(
+            boat_status
+        )  # Emit the signal with fallback data
 
-    def setConsecutiveAddWhenEnterPressed(self, f: bool):
-        self.__consecutive_add_when_enter_pressed_flag = f
-
-    def mousePressEvent(
-        self, e
-    ):  # make editor closed when user clicked somewhere else
-        if self.__persistent_editor_activated_flag:
-            self.closeIfPersistentEditorStillOpen()
-        return super().mousePressEvent(e)
-
-    def mouseDoubleClickEvent(
-        self, e
-    ):  # Let user edit the item when double clicking certain item
-        item = self.itemAt(e.pos())
-        self.openPersistentEditor(item)
-        self.__persistent_editor_activated_flag = True
-        return super().mouseDoubleClickEvent(e)
-
-    def keyPressEvent(self, e):
-        if e.key() == Qt.Key_Tab:  # add new item when user pressed tab
-            self.addItem(QListWidgetItem())
-            return
-        elif (
-            e.key() == Qt.Key_Return
-        ):  # make editor closed when user pressed enter
-            self.closeIfPersistentEditorStillOpen()
-            if self.__consecutive_add_when_enter_pressed_flag:
-                pass
-            else:
-                return
-        elif (
-            e.key() == Qt.Key_Up or e.key() == Qt.Key_Down
-        ):  # make editor closed when user pressed up or down button
-            self.closeIfPersistentEditorStillOpen()
-            return super().keyPressEvent(e)
-        elif e.key() == Qt.Key_F2:  # Let user edit the item when pressing F2
-            item = self.currentItem()
-            if item:
-                self.openPersistentEditor(item)
-                self.__persistent_editor_activated_flag = True
-        return super().keyPressEvent(e)
-
-    def closeIfPersistentEditorStillOpen(
-        self,
-    ):  # Check if user are editing item
-        item = self.currentItem()
-        if item:
-            if self.isPersistentEditorOpen(item):
-                self.closePersistentEditor(item)
-                self.__persistent_editor_activated_flag = False
+    def run(self):
+        """Run the thread and fetch the data."""
+        self.get_boat_data()
 
 
-class MapApp(QMainWindow):
+class PyQtInterface(QObject):
+    waypoints_updated = pyqtSignal(list)  # Signal to update waypoints
+
+    def __init__(self):
+        super().__init__()
+
+    def update_waypoints(self, waypoints):
+        """Update the list of waypoints in the PyQt app."""
+        self.waypoints_updated.emit(waypoints)
+
+    @pyqtSlot(str)
+    def send_map_interface(self, data):
+        """Process map-related data from JavaScript."""
+        print(f"Received map data: {data}")
+
+
+class WebEngineView(QWebEngineView):
+    def __init__(self):
+        super().__init__()
+
+        # Set up the channel and the interface
+        self.channel = QWebChannel()
+        self.js_interface = PyQtInterface()
+        self.channel.registerObject("pyqtInterface", self.js_interface)
+
+        # Set the page and register the channel
+        self.setPage(self.page())
+        self.page().setWebChannel(self.channel)
+
+        # Now set the HTML content
+        self.setHtml(HTML_MAP, QUrl("file://"))
+
+
+class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
 
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.main_layout = QHBoxLayout()
+        main_layout = QHBoxLayout()
+        left_layout = QVBoxLayout()
+        right_layout = QVBoxLayout()
 
-        self.telemetry_display = QTextEdit()
-        self.telemetry_display.setReadOnly(True)
-        self.telemetry_display.setMinimumWidth(200)
-        self.main_layout.addWidget(self.telemetry_display, 0)
+        # Left section
+        self.left_label = QLabel("Boat Data")
+        self.left_label.setAlignment(Qt.AlignCenter)
+        self.text_section = QTextEdit()
+        self.text_section.setReadOnly(True)
+        self.text_section.setText("Awaiting telemetry data...")
+        left_layout.addWidget(self.left_label)
+        left_layout.addWidget(self.text_section)
+        main_layout.addLayout(left_layout, 1)
 
-        self.browser = QWebEngineView()
-        self.browser.setHtml(HTML_MAP)
-        self.main_layout.addWidget(self.browser, 1)
+        # Middle: HTML display
+        self.web_view = WebEngineView()
+        main_layout.addWidget(self.web_view, 2)
 
-        self.right_widget = EditableListWidget()
-        self.right_widget.setLayout(QVBoxLayout())
-        self.main_layout.addWidget(self.right_widget, 0)
+        # Right section
+        self.right_label = QLabel("Waypoints")
+        self.right_label.setAlignment(Qt.AlignCenter)
+        self.list_widget = QListWidget()
+        self.list_widget.setSelectionMode(QListWidget.MultiSelection)
+        right_layout.addWidget(self.right_label)
+        right_layout.addWidget(self.list_widget)
 
-        self.central_widget.setLayout(self.main_layout)
+        main_layout.addLayout(right_layout, 1)
+        self.setLayout(main_layout)
 
-        self.add_waypoint_button = QPushButton("Add Waypoint")
-        self.add_waypoint_button.clicked.connect(self.add_waypoint)
-        self.right_widget.layout().addWidget(self.add_waypoint_button)
+        # Connect the waypoints updated signal
+        self.web_view.js_interface.waypoints_updated.connect(
+            self.update_waypoints_list
+        )
 
-        test = QListWidgetItem()
-        self.right_widget.addItem(test)
+    def update_waypoints_list(self, waypoints):
+        """Update the list widget with the new waypoints."""
+        print(f"Updating waypoints: {waypoints}")  # Debugging line
+        self.list_widget.clear()  # Clear existing list
+        if waypoints:  # Check if waypoints exist
+            for waypoint in waypoints:
+                waypoint_str = f"Waypoint: {waypoint[0]:.5f}, {waypoint[1]:.5f}"
+                self.list_widget.addItem(waypoint_str)
+        else:
+            print("No waypoints received.")
 
-        self.browser.page().setWebChannel(QWebChannel())
-        # Timer to run functions every 5 seconds
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.clear_map)
-        self.timer.timeout.connect(self.update_location)
-        self.timer.timeout.connect(self.update_wind_data)
-        self.timer.timeout.connect(self.update_waypoints)
-        self.timer.start(5000)
+    # endregion Right Section Functions
 
-    def update_waypoints(self):
-        """Update the map with waypoints."""
-        for item in self.right_widget.selectedItems():
-            # Assuming waypoints are in the form "(lat, lon)"
-            lat, lon = map(float, item.text().strip("()").split(","))
-            js_code = f"map.add_waypoint({lat}, {lon});"
-            self.browser.page().runJavaScript(js_code)
+    # region Left Section Functions
 
-        # get waypoints from js
-        waypoints = requests.get(WAYPOINTS_SERVER_URL).json()
-        for waypoint in waypoints:
-            self.right_widget.addItem(
-                QListWidgetItem(f"({waypoint[0]}, {waypoint[1]})")
-            )
+    def update_telemetry(self):
+        """Update the telemetry data by fetching it."""
+        self.telemetry_handler.get_boat_data()
 
-    def add_waypoint(self):
-        """Add a waypoint to the list."""
-        item = QListWidgetItem()  # Replace with actual lat/lon
-        self.right_widget.addItem(item)
+    def update_telemetry_display(self, boat_data):
+        """Update telemetry display with boat data."""
+        telemetry_text = f"""Boat Info:
+State: {boat_data.get("state", "N/A")}
+Speed: {boat_data.get("speed", "N/A")} knots
+Bearing: {boat_data.get("bearing", "N/A")}°
+Heading: {boat_data.get("heading", "N/A")}°
+True Wind Speed: {boat_data.get("true_wind_speed", "N/A")} knots
+True Wind Angle: {boat_data.get("true_wind_angle", "N/A")}°
+Apparent Wind Speed: {boat_data.get("apparent_wind_speed", "N/A")} knots
+Apparent Wind Angle: {boat_data.get("apparent_wind_angle", "N/A")}°
+Sail Angle: {boat_data.get("sail_angle", "N/A")}°
+Rudder Angle: {boat_data.get("rudder_angle", "N/A")}°
+Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
+Current Route: {boat_data.get("current_route", "N/A")}
+Parameters: {boat_data.get("parameters", "N/A")}
 
-    def update_location(self):
-        """Update the map with the latest boat location."""
+VESC Data:
+RPM: {boat_data.get("vesc_data_rpm", "N/A")}
+Duty Cycle: {boat_data.get("vesc_data_duty_cycle", "N/A")}%
+Amp Hours: {boat_data.get("vesc_data_amp_hours", "N/A")} Ah
+Amp Hours Charged: {boat_data.get("vesc_data_amp_hours_charged", "N/A")} Ah
+Current to VESC: {boat_data.get("vesc_data_current_to_vesc", "N/A")} A
+Voltage to Motor: {boat_data.get("vesc_data_voltage_to_motor", "N/A")} V
+Voltage to VESC: {boat_data.get("vesc_data_voltage_to_vesc", "N/A")} V
+Wattage to Motor: {boat_data.get("vesc_data_wattage_to_motor", "N/A")} W
+Time Since VESC Startup: {boat_data.get("vesc_data_time_since_vesc_startup_in_ms", "N/A")} ms
+Motor Temperature: {boat_data.get("vesc_data_motor_temperature", "N/A")}°C
+"""
+        self.text_section.setText(telemetry_text)
 
-        boat_data = self.get_boat_location()
-        if boat_data:
-            lat, lon, heading = boat_data
-            js_code = f"map.update_boat({lat}, {lon}, {heading});"
-            self.browser.page().runJavaScript(js_code)
-
-            # Display telemetry in the QTextEdit widget
-            self.telemetry_display.append(
-                f"Boat Location: Lat {lat}, Lon {lon}, Heading {heading}"
-            )
-
-    def clear_map(self):
-        """Clear all wind arrows from the map."""
-        self.browser.page().runJavaScript("map.clear_wind_arrows();")
-
-    def get_boat_location(self):
-        """Fetch boat location from telemetry server."""
-        try:
-            boat_status = {
-                "latitude": 36.983731367697374,
-                "longitude": -76.29555376681454,
-                "heading": np.random.randint(0, 360),
-            }
-            # boat_status = requests.get(TELEMETRY_SERVER_URL + "boat_status/get").json()
-            return (
-                boat_status["latitude"],
-                boat_status["longitude"],
-                boat_status["heading"],
-            )
-        except Exception as e:
-            print(f"Error fetching location: {e}")
-            return (0, 0, 0)
-
-    def update_wind_data(self):
-        """Fetch wind data and update the map with wind arrows."""
-        wind_data = get_buoy_wind_data() + get_station_wind_data()
-
-        for wind in wind_data:
-            lat, lon = wind["lat"], wind["lon"]
-            wind_dir = wind["wind_dir"]
-            wind_speed = wind["wind_speed"]
-
-            js_code = f"map.add_wind_arrow({lat}, {lon}, {wind_dir - 180}, {wind_speed});"
-            self.browser.page().runJavaScript(js_code)
+    # endregion Left Section Functions
 
 
+# region Data Fetching Functions
 def get_buoy_wind_data():
     """Fetch wind data from NOAA buoys."""
     url = "https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt"
     try:
-        response = requests.get(
-            url,
-        )
+        response = requests.get(url)
+        response.raise_for_status()
         raw_data = response.text
 
         # Extract header labels
@@ -255,7 +263,7 @@ def get_buoy_wind_data():
         )
 
         return df.to_dict(orient="records")
-    except Exception as e:
+    except requests.RequestException as e:
         print(f"Error fetching buoy data: {e}")
         return []
 
@@ -284,13 +292,15 @@ def get_station_wind_data():
         df = df.astype(float)
 
         return df.to_dict(orient="records")
-    except Exception as e:
+    except requests.RequestException as e:
         print(f"Error fetching station data: {e}")
         return []
 
 
+# endregion
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = MapApp()
+    window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    sys.exit(app.exec_())
