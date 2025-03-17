@@ -15,7 +15,6 @@ app.post("/waypoints", (req, res) => {
     const { waypoints: newWaypoints } = req.body;
     if (Array.isArray(newWaypoints)) {
         waypoints = newWaypoints;
-        console.log("Waypoints updated:", waypoints);
         res.status(200).send({ message: "Waypoints updated successfully" });
     } else {
         res.status(400).send({ message: "Invalid waypoints data" });

@@ -94,37 +94,24 @@ class TelemetryUpdater(QThread):
         self.get_boat_data()
 
 
-class PyQtInterface(QObject):
-    waypoints_updated = pyqtSignal(list)  # Signal to update waypoints
+class WaypointUpdater(QThread):
+    waypoints_fetched = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
 
-    def update_waypoints(self, waypoints):
-        """Update the list of waypoints in the PyQt app."""
-        self.waypoints_updated.emit(waypoints)
+    def get_waypoints(self):
+        """Fetch waypoints from server."""
+        try:
+            waypoints = requests.get(WAYPOINTS_SERVER_URL).json()
+        except requests.RequestException:
+            print("Not able to fetch data from waypoints server.")
+            waypoints = []
+        self.waypoints_fetched.emit(waypoints)
 
-    @pyqtSlot(str)
-    def send_map_interface(self, data):
-        """Process map-related data from JavaScript."""
-        print(f"Received map data: {data}")
-
-
-class WebEngineView(QWebEngineView):
-    def __init__(self):
-        super().__init__()
-
-        # Set up the channel and the interface
-        self.channel = QWebChannel()
-        self.js_interface = PyQtInterface()
-        self.channel.registerObject("pyqtInterface", self.js_interface)
-
-        # Set the page and register the channel
-        self.setPage(self.page())
-        self.page().setWebChannel(self.channel)
-
-        # Now set the HTML content
-        self.setHtml(HTML_MAP, QUrl("file://"))
+    def run(self):
+        """Run the thread and fetch the data."""
+        self.get_waypoints()
 
 
 class MainWindow(QWidget):
@@ -140,43 +127,63 @@ class MainWindow(QWidget):
         # Left section
         self.left_label = QLabel("Boat Data")
         self.left_label.setAlignment(Qt.AlignCenter)
-        self.text_section = QTextEdit()
-        self.text_section.setReadOnly(True)
-        self.text_section.setText("Awaiting telemetry data...")
+        self.left_text_section = QTextEdit()
+        self.left_text_section.setReadOnly(True)
+        self.left_text_section.setText("Awaiting telemetry data...")
         left_layout.addWidget(self.left_label)
-        left_layout.addWidget(self.text_section)
+        left_layout.addWidget(self.left_text_section)
         main_layout.addLayout(left_layout, 1)
 
         # Middle: HTML display
-        self.web_view = WebEngineView()
-        main_layout.addWidget(self.web_view, 2)
+        self.browser = QWebEngineView()
+        self.browser.setHtml(HTML_MAP)
+        main_layout.addWidget(self.browser, 4)
 
         # Right section
         self.right_label = QLabel("Waypoints")
         self.right_label.setAlignment(Qt.AlignCenter)
-        self.list_widget = QListWidget()
-        self.list_widget.setSelectionMode(QListWidget.MultiSelection)
+        self.right_text_section = QTextEdit()
+        self.right_text_section.setReadOnly(True)
+        self.right_text_section.setText("")
         right_layout.addWidget(self.right_label)
-        right_layout.addWidget(self.list_widget)
+        right_layout.addWidget(self.right_text_section)
+        main_layout.addLayout(right_layout, 2)
 
-        main_layout.addLayout(right_layout, 1)
         self.setLayout(main_layout)
 
-        # Connect the waypoints updated signal
-        self.web_view.js_interface.waypoints_updated.connect(
-            self.update_waypoints_list
+        self.telemetry_handler = TelemetryUpdater()
+        self.waypoint_handler = WaypointUpdater()
+
+        # Connect signals to update UI
+        self.telemetry_handler.boat_data_fetched.connect(
+            self.update_telemetry_display
+        )
+        self.waypoint_handler.waypoints_fetched.connect(
+            self.update_waypoints_display
         )
 
-    def update_waypoints_list(self, waypoints):
-        """Update the list widget with the new waypoints."""
-        print(f"Updating waypoints: {waypoints}")  # Debugging line
-        self.list_widget.clear()  # Clear existing list
-        if waypoints:  # Check if waypoints exist
-            for waypoint in waypoints:
-                waypoint_str = f"Waypoint: {waypoint[0]:.5f}, {waypoint[1]:.5f}"
-                self.list_widget.addItem(waypoint_str)
-        else:
-            print("No waypoints received.")
+        # Start periodic updates
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_telemetry)
+        self.timer.timeout.connect(self.update_waypoints)
+        self.timer.start(5000)  # Fetch data every 5 seconds
+
+    # region Right Section Functions
+    def update_waypoints(self):
+        """Update waypoints display with fetched waypoints."""
+        if not self.waypoint_handler.isRunning():
+            self.waypoint_handler.start()
+
+    def update_waypoints_display(self, waypoints):
+        """Update waypoints display with fetched waypoints."""
+        waypoints_text = ""
+        for waypoint in waypoints:
+            waypoints_text += (
+                f"Latitude: {waypoint[0]}, Longitude: {waypoint[1]}\n"
+            )
+        self.right_text_section.setText(
+            waypoints_text
+        ) if waypoints else "No waypoints found."
 
     # endregion Right Section Functions
 
@@ -184,7 +191,8 @@ class MainWindow(QWidget):
 
     def update_telemetry(self):
         """Update the telemetry data by fetching it."""
-        self.telemetry_handler.get_boat_data()
+        if not self.telemetry_handler.isRunning():
+            self.telemetry_handler.start()
 
     def update_telemetry_display(self, boat_data):
         """Update telemetry display with boat data."""
@@ -215,7 +223,7 @@ Wattage to Motor: {boat_data.get("vesc_data_wattage_to_motor", "N/A")} W
 Time Since VESC Startup: {boat_data.get("vesc_data_time_since_vesc_startup_in_ms", "N/A")} ms
 Motor Temperature: {boat_data.get("vesc_data_motor_temperature", "N/A")}°C
 """
-        self.text_section.setText(telemetry_text)
+        self.left_text_section.setText(telemetry_text)
 
     # endregion Left Section Functions
 

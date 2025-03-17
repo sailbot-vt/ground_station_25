@@ -1,1 +1,1 @@
-python src/main.py & npm run start
+npm run start & python src/main.py

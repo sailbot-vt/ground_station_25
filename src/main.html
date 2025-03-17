@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
     <script src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
-    <script src="qwebchannel.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
     <style>
         #map {
@@ -83,19 +82,34 @@
                 }).addTo(this.map)
             }
 
-            // Send waypoints to PyQt
-            send_waypoints_to_pyqt() {
-                console.log("Sending waypoints to PyQt")
-                if (window.pyqtInterface) {
-                    console.log("Sent waypoints to PyQt")
-                    window.pyqtInterface.update_waypoints(this.waypoints);
+            async sync_waypoints() {
+                try {
+                    const response = await fetch("http://localhost:3000/waypoints", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        // only send new waypoints
+                        body: JSON.stringify({
+                            waypoints: this.waypoints
+                        }),
+                    });
+
+                    if (response.ok) {
+                        console.log("Waypoints synced with server");
+                    } else {
+                        console.error("Failed to sync waypoints with server");
+                    }
+                } catch (error) {
+                    console.error("Error sending waypoint:", error);
                 }
             }
+
 
             add_waypoint(lat, lon) {
                 this.waypoints.push([lat, lon]);
                 L.marker([lat, lon]).addTo(this.map);
-                this.send_waypoints_to_pyqt(); // Send the updated waypoints to PyQt
+                this.sync_waypoints();
             }
 
             remove_waypoint(index) {
@@ -108,7 +122,7 @@
                 this.waypoints.forEach(waypoint => {
                     L.marker(waypoint).addTo(this.map);
                 });
-                this.send_waypoints_to_pyqt(); // Send the updated waypoints to PyQt
+                this.sync_waypoints();
             }
 
             focus_map_on_waypoint(lat, lon) {
