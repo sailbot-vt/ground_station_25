@@ -34,7 +34,7 @@ from PyQt5.QtWidgets import (
 
 
 TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
-WAYPOINTS_SERVER_URL = "http://localhost:3000/waypoints"
+WAYPOINTS_SERVER_URL = "http://localhost:3001/waypoints"
 
 
 HTML_MAP_PATH = os.getcwd() + "/src/main.html"
