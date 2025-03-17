@@ -58,7 +58,6 @@ class TelemetryUpdater(QThread):
         try:
             boat_status = requests.get(TELEMETRY_SERVER_URL).json()
         except requests.RequestException:
-            print("Not able to fetch data from telemetry server.")
             boat_status = {
                 "position": [36.983731367697374, -76.29555376681454],
                 "state": "N/A",
@@ -105,7 +104,6 @@ class WaypointUpdater(QThread):
         try:
             waypoints = requests.get(WAYPOINTS_SERVER_URL).json()
         except requests.RequestException:
-            print("Not able to fetch data from waypoints server.")
             waypoints = []
         self.waypoints_fetched.emit(waypoints)
 
@@ -162,11 +160,31 @@ class MainWindow(QWidget):
             self.update_waypoints_display
         )
 
-        # Start periodic updates
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_telemetry)
-        self.timer.timeout.connect(self.update_waypoints)
-        self.timer.start(100)  # milliseconds
+        # Slow timer for wind arrows
+        self.slow_timer = QTimer(self)
+        # self.slow_timer.timeout.connect(self.clear_map)
+        # self.slow_timer.timeout.connect(self.update_wind)
+
+        # Fast timer for telemetry and waypoints
+        self.fast_timer = QTimer(self)
+        self.slow_timer.timeout.connect(self.update_telemetry)
+        self.fast_timer.timeout.connect(self.update_waypoints)
+        self.fast_timer.start(100)  # milliseconds
+        self.slow_timer.start(1000)  # milliseconds
+
+    def update_wind(self):
+        wind_data = get_buoy_wind_data() + get_station_wind_data()
+
+        for wind in wind_data:
+            lat, lon = wind["lat"], wind["lon"]
+            wind_dir = wind["wind_dir"]
+            wind_speed = wind["wind_speed"]
+
+            js_code = f"map.add_wind_arrow({lat}, {lon}, {wind_dir - 180}, {wind_speed});"
+            self.browser.page().runJavaScript(js_code)
+
+    def clear_map(self):
+        self.browser.page().runJavaScript("map.clear_wind_arrows();")
 
     # region Right Section Functions
     def update_waypoints(self):

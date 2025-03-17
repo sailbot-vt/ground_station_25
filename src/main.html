@@ -29,12 +29,12 @@
                 zoom: 13
             }
             static boat_icon = L.icon({
-                iconUrl: "https://github.com/sailbot-vt/ground_station_25/blob/testing/assets/boat.png?raw=true",
+                iconUrl: "https://github.com/sailbot-vt/ground_station_25/blob/main/assets/boat.png?raw=true",
                 iconSize: [50, 50],
                 iconAnchor: [25, 25]
             })
             static wind_icon = L.icon({
-                iconUrl: "https://github.com/sailbot-vt/ground_station_25/blob/testing/assets/arrow.png?raw=true",
+                iconUrl: "https://github.com/sailbot-vt/ground_station_25/blob/main/assets/arrow.png?raw=true",
                 iconSize: [30, 30],
                 iconAnchor: [15, 15]
             })
@@ -84,7 +84,7 @@
 
             async sync_waypoints() {
                 try {
-                    const response = await fetch("http://localhost:3000/waypoints", {
+                    const response = await fetch("http://localhost:3001/waypoints", {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -124,6 +124,32 @@
                 });
                 this.sync_waypoints();
             }
+
+            add_wind_arrow(lat, lon, wind_dir, wind_speed) {
+                // Skip adding if too far from the boat
+                if (
+                    Math.abs(lat - this.boat.location[0]) > 0.5 ||
+                    Math.abs(lon - this.boat.location[1]) > 0.5
+                ) {
+                    return
+                }
+
+                var windArrowMarker = L.marker([lat, lon], {
+                    icon: map_interface.wind_icon,
+                    rotationAngle: wind_dir,
+                    rotationOrigin: "center"
+                }).addTo(this.map)
+
+                windArrowMarker.bindPopup(`Wind: ${wind_dir}°, ${wind_speed} m/s`)
+            }
+
+            clear_wind_arrows() {
+                this.map.eachLayer(layer => {
+                    if (layer instanceof L.Marker && layer._icon.src.includes("arrow.png")) {
+                        this.map.removeLayer(layer);
+                    }
+                });
+}
 
             focus_map_on_waypoint(lat, lon) {
                 this.map.setView([lat, lon], 15);
