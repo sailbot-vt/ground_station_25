@@ -48,3 +48,7 @@ Ensure that you have the following software installed on your system:
 
 ### Usage
 Left click on the map to add waypoints. Right clicking removes the closest waypoint to your cursor's location.
+
+### Demo
+https://github.com/user-attachments/assets/1cfeccfd-521e-4cca-a46d-b165460b150f
+
