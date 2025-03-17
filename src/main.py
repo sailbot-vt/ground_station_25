@@ -166,7 +166,7 @@ class MainWindow(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_telemetry)
         self.timer.timeout.connect(self.update_waypoints)
-        self.timer.start(5000)  # Fetch data every 5 seconds
+        self.timer.start(100)  # milliseconds
 
     # region Right Section Functions
     def update_waypoints(self):
@@ -181,9 +181,7 @@ class MainWindow(QWidget):
             waypoints_text += (
                 f"Latitude: {waypoint[0]}, Longitude: {waypoint[1]}\n"
             )
-        self.right_text_section.setText(
-            waypoints_text
-        ) if waypoints else "No waypoints found."
+        self.right_text_section.setText(waypoints_text)
 
     # endregion Right Section Functions
 
@@ -225,7 +223,8 @@ Motor Temperature: {boat_data.get("vesc_data_motor_temperature", "N/A")}°C
 """
         self.left_text_section.setText(telemetry_text)
 
-    # endregion Left Section Functions
+
+# endregion Left Section Functions
 
 
 # region Data Fetching Functions
@@ -305,7 +304,7 @@ def get_station_wind_data():
         return []
 
 
-# endregion
+# endregion Data Fetching Functions
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
