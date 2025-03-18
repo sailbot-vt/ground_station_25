@@ -24,10 +24,12 @@ from PyQt5.QtWidgets import (
     QApplication,
     QWidget,
     QVBoxLayout,
+    QGridLayout,
     QHBoxLayout,
     QTextEdit,
     QListWidget,
     QPushButton,
+    QCheckBox,
     QLineEdit,
     QLabel,
 )
@@ -122,9 +124,11 @@ class MainWindow(QWidget):
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
 
-        main_layout = QHBoxLayout()
+        main_layout = QGridLayout()
         left_layout = QVBoxLayout()
+        middle_layout = QGridLayout()
         right_layout = QVBoxLayout()
+        buttom_left_layout = QGridLayout()
 
         # Left section
         self.left_label = QLabel("Boat Data")
@@ -135,14 +139,59 @@ class MainWindow(QWidget):
         self.left_text_section.setText("Awaiting telemetry data...")
         left_layout.addWidget(self.left_label)
         left_layout.addWidget(self.left_text_section)
-        main_layout.addLayout(left_layout, 1)
+        main_layout.addLayout(left_layout, 0, 0)
+
+        # Buttom left section: Parameter input
+    
+        # region Parameter input
+        # perform_forced_jibe_instead_of_tack
+        self.forced_jibe_checkbox = QCheckBox(
+            "Perform forced jibe instead of tack?"
+        )
+        buttom_left_layout.addWidget(self.forced_jibe_checkbox, 1, 0)
+
+        # waypoint_accuracy
+        self.waypoint_accuracy_label = QLabel("Waypoint Accuracy")
+        self.waypoint_accuracy_text_box = QLineEdit()
+        buttom_left_layout.addWidget(self.waypoint_accuracy_label, 2, 0)
+        buttom_left_layout.addWidget(self.waypoint_accuracy_text_box, 3, 0)
+        self.waypoint_accuracy_label.setAlignment(Qt.AlignCenter)
+        self.waypoint_accuracy_text_box.setAlignment(Qt.AlignCenter)
+
+        # no_sail_zone_size
+        self.no_sail_zone_size_label = QLabel("No Sail Zone Size")
+        self.no_sail_zone_size_text_box = QLineEdit()
+        buttom_left_layout.addWidget(self.no_sail_zone_size_label, 4, 0)
+        buttom_left_layout.addWidget(self.no_sail_zone_size_text_box, 5, 0)
+        self.no_sail_zone_size_label.setAlignment(Qt.AlignCenter)
+        self.no_sail_zone_size_text_box.setAlignment(Qt.AlignCenter)
+
+        # autopilot_refresh_rate
+        self.autopilot_refresh_rate_label = QLabel("Autopilot Refresh Rate")
+        self.autopilot_refresh_rate_text_box = QLineEdit()
+        buttom_left_layout.addWidget(self.autopilot_refresh_rate_label, 6, 0)
+        buttom_left_layout.addWidget(self.autopilot_refresh_rate_text_box, 7, 0)
+        self.autopilot_refresh_rate_label.setAlignment(Qt.AlignCenter)
+        self.autopilot_refresh_rate_text_box.setAlignment(Qt.AlignCenter)
+
+        # tack_distance
+        self.tack_distance_label = QLabel("Tack Distance")
+        self.tack_distance_text_box = QLineEdit()
+        buttom_left_layout.addWidget(self.tack_distance_label, 8, 0)
+        buttom_left_layout.addWidget(self.tack_distance_text_box, 9, 0)
+        self.tack_distance_label.setAlignment(Qt.AlignCenter)
+        self.tack_distance_text_box.setAlignment(Qt.AlignCenter)
+
+        # endregion Parameter input
+        left_layout.addLayout(buttom_left_layout)
 
         # Middle: HTML display
         self.browser = QWebEngineView()
         self.browser.setHtml(HTML_MAP)
         self.browser.setMinimumWidth(700)
         self.browser.setMinimumHeight(700)
-        main_layout.addWidget(self.browser, 4)
+        middle_layout.addWidget(self.browser, 0, 1)
+        main_layout.addLayout(middle_layout, 0, 1)
 
         # Right section
         self.right_label = QLabel("Waypoints")
@@ -160,7 +209,7 @@ class MainWindow(QWidget):
         right_layout.addWidget(self.right_label)
         right_layout.addWidget(self.right_text_section)
         right_layout.addWidget(self.right_button)
-        main_layout.addLayout(right_layout, 2)
+        main_layout.addLayout(right_layout, 0, 2)
 
         self.setLayout(main_layout)
 
