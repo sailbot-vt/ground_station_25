@@ -117,6 +117,8 @@ class WaypointUpdater(QThread):
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
+        self.waypoints = []
+        self.num_waypoints = 0
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
 
@@ -149,8 +151,15 @@ class MainWindow(QWidget):
         self.right_text_section.setReadOnly(True)
         self.right_text_section.setMinimumWidth(300)
         self.right_text_section.setText("")
+        self.right_button = QPushButton("Sync Waypoints")
+        self.right_button.clicked.connect(self.sync_waypoints)
+        self.right_button.setDisabled(True)
+        self.right_button_can_be_clicked = False
+        self.right_button.setMinimumWidth(300)
+        self.right_button.setMinimumHeight(50)
         right_layout.addWidget(self.right_label)
         right_layout.addWidget(self.right_text_section)
+        right_layout.addWidget(self.right_button)
         main_layout.addLayout(right_layout, 2)
 
         self.setLayout(main_layout)
@@ -166,31 +175,28 @@ class MainWindow(QWidget):
             self.update_waypoints_display
         )
 
-        # Slow timer for wind arrows
+        # Slow timer for telemetry
         self.slow_timer = QTimer(self)
         self.slow_timer.timeout.connect(self.update_telemetry)
-        # self.slow_timer.timeout.connect(self.clear_map)
-        # self.slow_timer.timeout.connect(self.update_wind)
 
-        # Fast timer for telemetry and waypoints
+        # Fast timer for waypoints
         self.fast_timer = QTimer(self)
         self.fast_timer.timeout.connect(self.update_waypoints)
+
+        # Start timers
         self.fast_timer.start(100)  # milliseconds
         self.slow_timer.start(1000)  # milliseconds
 
-    def update_wind(self):
-        wind_data = get_buoy_wind_data() + get_station_wind_data()
-
-        for wind in wind_data:
-            lat, lon = wind["lat"], wind["lon"]
-            wind_dir = wind["wind_dir"]
-            wind_speed = wind["wind_speed"]
-
-            js_code = f"map.add_wind_arrow({lat}, {lon}, {wind_dir - 180}, {wind_speed});"
-            self.browser.page().runJavaScript(js_code)
-
-    def clear_map(self):
-        self.browser.page().runJavaScript("map.clear_wind_arrows();")
+    def sync_waypoints(self):
+        """Sync waypoints with the server."""
+        self.right_button_can_be_clicked = False
+        try:
+            requests.post(
+                TELEMETRY_SERVER_URL + "waypoints/set",
+                json={"value": self.waypoints},
+            ).json()
+        except requests.RequestException as e:
+            print(f"Error syncing waypoints: {e}")
 
     # region Right Section Functions
     def update_waypoints(self):
@@ -200,11 +206,11 @@ class MainWindow(QWidget):
 
     def update_waypoints_display(self, waypoints):
         """Update waypoints display with fetched waypoints."""
-        # requests.post(
-        #     TELEMETRY_SERVER_URL + "waypoints/set",
-        #     json={"value": waypoints},
-        # ).json()
-        # print(requests.get(TELEMETRY_SERVER_URL + "/waypoints/get").json())
+        self.waypoints = waypoints
+        self.right_button.setDisabled(not self.right_button_can_be_clicked)
+        if len(waypoints) != self.num_waypoints:
+            self.right_button_can_be_clicked = True
+            self.num_waypoints = len(waypoints)
         waypoints_text = ""
         for waypoint in waypoints:
             waypoints_text += f"Latitude: {round(waypoint[0], 6)}, Longitude: {round(waypoint[1], 6)}\n"
@@ -252,86 +258,6 @@ Motor Temperature: {boat_data.get("vesc_data_motor_temperature", "N/A")}°C
 
 
 # endregion Left Section Functions
-
-
-# region Data Fetching Functions
-def get_buoy_wind_data():
-    """Fetch wind data from NOAA buoys."""
-    url = "https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        raw_data = response.text
-
-        # Extract header labels
-        lines = raw_data.split("\n")
-        labels = [
-            f"{i} ({j})"
-            for i, j in zip(
-                lines[0].replace("#", "").split(),
-                lines[1].replace("#", "").split(),
-            )
-        ]
-
-        df = pd.read_csv(
-            StringIO(raw_data),
-            comment="#",
-            sep=r"\s+",
-            header=None,
-            names=labels,
-            na_values="MM",
-            keep_default_na=True,
-        )
-
-        df = df[
-            ["LAT (deg)", "LON (deg)", "WDIR (degT)", "WSPD (m/s)"]
-        ].dropna()
-        df.rename(
-            columns={
-                "LAT (deg)": "lat",
-                "LON (deg)": "lon",
-                "WDIR (degT)": "wind_dir",
-                "WSPD (m/s)": "wind_speed",
-            },
-            inplace=True,
-        )
-
-        return df.to_dict(orient="records")
-    except requests.RequestException as e:
-        print(f"Error fetching buoy data: {e}")
-        return []
-
-
-def get_station_wind_data():
-    """Fetch wind data from NOAA weather stations."""
-    url = "https://aviationweather.gov/data/cache/metars.cache.csv"
-    try:
-        df = pd.read_csv(url, skiprows=5, na_values="VRB")
-
-        df = df[
-            ["latitude", "longitude", "wind_dir_degrees", "wind_speed_kt"]
-        ].dropna()
-
-        # Convert wind speed from knots to m/s
-        df["wind_speed"] = df["wind_speed_kt"] * 0.514444
-
-        df.rename(
-            columns={
-                "latitude": "lat",
-                "longitude": "lon",
-                "wind_dir_degrees": "wind_dir",
-            },
-            inplace=True,
-        )
-        df = df.astype(float)
-
-        return df.to_dict(orient="records")
-    except requests.RequestException as e:
-        print(f"Error fetching station data: {e}")
-        return []
-
-
-# endregion Data Fetching Functions
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
