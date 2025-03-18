@@ -65,7 +65,7 @@
                             (waypoint[0] - e.latlng.lat) ** 2 +
                             (waypoint[1] - e.latlng.lng) ** 2
                         )
-                        if (distance < closest_distance) {
+                        if (distance < closest_distance && distance < 0.05) {
                             closest_index = index
                             closest_distance = distance
                         }

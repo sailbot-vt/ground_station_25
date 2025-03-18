@@ -56,7 +56,9 @@ class TelemetryUpdater(QThread):
     def get_boat_data(self):
         """Fetch boat data from telemetry server."""
         try:
-            boat_status = requests.get(TELEMETRY_SERVER_URL).json()
+            boat_status = requests.get(
+                TELEMETRY_SERVER_URL + "/boat_status/get"
+            ).json()
         except requests.RequestException:
             boat_status = {
                 "position": [36.983731367697374, -76.29555376681454],
@@ -126,6 +128,7 @@ class MainWindow(QWidget):
         self.left_label = QLabel("Boat Data")
         self.left_label.setAlignment(Qt.AlignCenter)
         self.left_text_section = QTextEdit()
+        self.left_text_section.setMinimumWidth(300)
         self.left_text_section.setReadOnly(True)
         self.left_text_section.setText("Awaiting telemetry data...")
         left_layout.addWidget(self.left_label)
@@ -135,6 +138,8 @@ class MainWindow(QWidget):
         # Middle: HTML display
         self.browser = QWebEngineView()
         self.browser.setHtml(HTML_MAP)
+        self.browser.setMinimumWidth(700)
+        self.browser.setMinimumHeight(700)
         main_layout.addWidget(self.browser, 4)
 
         # Right section
@@ -142,6 +147,7 @@ class MainWindow(QWidget):
         self.right_label.setAlignment(Qt.AlignCenter)
         self.right_text_section = QTextEdit()
         self.right_text_section.setReadOnly(True)
+        self.right_text_section.setMinimumWidth(300)
         self.right_text_section.setText("")
         right_layout.addWidget(self.right_label)
         right_layout.addWidget(self.right_text_section)
@@ -162,12 +168,12 @@ class MainWindow(QWidget):
 
         # Slow timer for wind arrows
         self.slow_timer = QTimer(self)
+        self.slow_timer.timeout.connect(self.update_telemetry)
         # self.slow_timer.timeout.connect(self.clear_map)
         # self.slow_timer.timeout.connect(self.update_wind)
 
         # Fast timer for telemetry and waypoints
         self.fast_timer = QTimer(self)
-        self.slow_timer.timeout.connect(self.update_telemetry)
         self.fast_timer.timeout.connect(self.update_waypoints)
         self.fast_timer.start(100)  # milliseconds
         self.slow_timer.start(1000)  # milliseconds
@@ -194,11 +200,14 @@ class MainWindow(QWidget):
 
     def update_waypoints_display(self, waypoints):
         """Update waypoints display with fetched waypoints."""
+        # requests.post(
+        #     TELEMETRY_SERVER_URL + "waypoints/set",
+        #     json={"value": waypoints},
+        # ).json()
+        # print(requests.get(TELEMETRY_SERVER_URL + "/waypoints/get").json())
         waypoints_text = ""
         for waypoint in waypoints:
-            waypoints_text += (
-                f"Latitude: {waypoint[0]}, Longitude: {waypoint[1]}\n"
-            )
+            waypoints_text += f"Latitude: {round(waypoint[0], 6)}, Longitude: {round(waypoint[1], 6)}\n"
         self.right_text_section.setText(waypoints_text)
 
     # endregion Right Section Functions
