@@ -31,6 +31,7 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QCheckBox,
     QLineEdit,
+    QTabWidget,
     QLabel,
 )
 
@@ -125,10 +126,13 @@ class MainWindow(QWidget):
         self.setGeometry(100, 100, 800, 600)
 
         main_layout = QGridLayout()
-        left_layout = QVBoxLayout()
+        left_layout = QTabWidget()
+        left_tab1 = QWidget(left_layout)
+        left_tab2 = QWidget(left_layout)
+        left_tab1_layout = QVBoxLayout()
+        left_tab2_layout = QGridLayout()
         middle_layout = QGridLayout()
         right_layout = QVBoxLayout()
-        buttom_left_layout = QGridLayout()
 
         # Left section
         self.left_label = QLabel("Boat Data")
@@ -137,53 +141,56 @@ class MainWindow(QWidget):
         self.left_text_section.setMinimumWidth(300)
         self.left_text_section.setReadOnly(True)
         self.left_text_section.setText("Awaiting telemetry data...")
-        left_layout.addWidget(self.left_label)
-        left_layout.addWidget(self.left_text_section)
-        main_layout.addLayout(left_layout, 0, 0)
+        left_tab1_layout.addWidget(self.left_label)
+        left_tab1_layout.addWidget(self.left_text_section)
 
-        # Buttom left section: Parameter input
-    
+        # tab2 section: Parameter input
+
         # region Parameter input
         # perform_forced_jibe_instead_of_tack
         self.forced_jibe_checkbox = QCheckBox(
             "Perform forced jibe instead of tack?"
         )
-        buttom_left_layout.addWidget(self.forced_jibe_checkbox, 1, 0)
+        left_tab2_layout.addWidget(self.forced_jibe_checkbox, 1, 0)
 
         # waypoint_accuracy
         self.waypoint_accuracy_label = QLabel("Waypoint Accuracy")
         self.waypoint_accuracy_text_box = QLineEdit()
-        buttom_left_layout.addWidget(self.waypoint_accuracy_label, 2, 0)
-        buttom_left_layout.addWidget(self.waypoint_accuracy_text_box, 3, 0)
+        left_tab2_layout.addWidget(self.waypoint_accuracy_label, 2, 0)
+        left_tab2_layout.addWidget(self.waypoint_accuracy_text_box, 3, 0)
         self.waypoint_accuracy_label.setAlignment(Qt.AlignCenter)
         self.waypoint_accuracy_text_box.setAlignment(Qt.AlignCenter)
 
         # no_sail_zone_size
         self.no_sail_zone_size_label = QLabel("No Sail Zone Size")
         self.no_sail_zone_size_text_box = QLineEdit()
-        buttom_left_layout.addWidget(self.no_sail_zone_size_label, 4, 0)
-        buttom_left_layout.addWidget(self.no_sail_zone_size_text_box, 5, 0)
+        left_tab2_layout.addWidget(self.no_sail_zone_size_label, 4, 0)
+        left_tab2_layout.addWidget(self.no_sail_zone_size_text_box, 5, 0)
         self.no_sail_zone_size_label.setAlignment(Qt.AlignCenter)
         self.no_sail_zone_size_text_box.setAlignment(Qt.AlignCenter)
 
         # autopilot_refresh_rate
         self.autopilot_refresh_rate_label = QLabel("Autopilot Refresh Rate")
         self.autopilot_refresh_rate_text_box = QLineEdit()
-        buttom_left_layout.addWidget(self.autopilot_refresh_rate_label, 6, 0)
-        buttom_left_layout.addWidget(self.autopilot_refresh_rate_text_box, 7, 0)
+        left_tab2_layout.addWidget(self.autopilot_refresh_rate_label, 6, 0)
+        left_tab2_layout.addWidget(self.autopilot_refresh_rate_text_box, 7, 0)
         self.autopilot_refresh_rate_label.setAlignment(Qt.AlignCenter)
         self.autopilot_refresh_rate_text_box.setAlignment(Qt.AlignCenter)
 
         # tack_distance
         self.tack_distance_label = QLabel("Tack Distance")
         self.tack_distance_text_box = QLineEdit()
-        buttom_left_layout.addWidget(self.tack_distance_label, 8, 0)
-        buttom_left_layout.addWidget(self.tack_distance_text_box, 9, 0)
+        left_tab2_layout.addWidget(self.tack_distance_label, 8, 0)
+        left_tab2_layout.addWidget(self.tack_distance_text_box, 9, 0)
         self.tack_distance_label.setAlignment(Qt.AlignCenter)
         self.tack_distance_text_box.setAlignment(Qt.AlignCenter)
 
         # endregion Parameter input
-        left_layout.addLayout(buttom_left_layout)
+        left_tab1.setLayout(left_tab1_layout)
+        left_tab2.setLayout(left_tab2_layout)
+        left_layout.addTab(left_tab1, "Boat Data")
+        left_layout.addTab(left_tab2, "Parameter Input")
+        main_layout.addWidget(left_layout, 0, 0)
 
         # Middle: HTML display
         self.browser = QWebEngineView()
