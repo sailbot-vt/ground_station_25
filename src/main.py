@@ -2,17 +2,14 @@ import os
 from pathlib import Path
 import sys
 import json
-from io import StringIO
 import time
 from typing import Union
 from functools import partial
 
 
 import numpy as np
-import pandas as pd
 import requests
 
-from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QThread, QTimer, pyqtSignal, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
