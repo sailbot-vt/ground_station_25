@@ -52,4 +52,6 @@ Left click on the map to add waypoints. Right clicking removes the closest waypo
 
 ### Demo
 
-<https://github.com/user-attachments/assets/cb9b27e0-9d0b-4e4a-9304-ef5e3ad5e381>
+<https://github.com/user-attachments/assets/4d5181cc-672a-436c-bc56-e994ac10a0eb>
+
+
