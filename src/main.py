@@ -5,12 +5,14 @@ import json
 from io import StringIO
 import time
 from typing import Union
+from functools import partial
 
 
 import numpy as np
 import pandas as pd
 import requests
 
+from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import QThread, QTimer, pyqtSignal, Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
@@ -26,6 +28,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QCheckBox,
     QGroupBox,
+    QStyle,
 )
 
 
@@ -152,6 +155,18 @@ class MainWindow(QWidget):
         self.num_waypoints = 0
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
+        self.up_arrow = self.style().standardIcon(
+            QStyle.StandardPixmap.SP_ArrowUp
+        )
+        self.down_arrow = self.style().standardIcon(
+            QStyle.StandardPixmap.SP_ArrowDown
+        )
+        self.right_arrow = self.style().standardIcon(
+            QStyle.StandardPixmap.SP_ArrowRight
+        )
+        self.left_arrow = self.style().standardIcon(
+            QStyle.StandardPixmap.SP_ArrowLeft
+        )
 
         # region define layouts
         self.main_layout = QGridLayout()
@@ -178,38 +193,91 @@ class MainWindow(QWidget):
 
         # region tab2: Parameter input
         # perform_forced_jibe_instead_of_tack
+        self.perform_forced_jibe_instead_of_tack_layout = QHBoxLayout()
+        self.forced_jibe_send_button = QPushButton()
+        button_function = partial(
+            self.send_individual_parameter,
+            "perform_forced_jibe_instead_of_tack",
+        )
+        self.forced_jibe_send_button.clicked.connect(button_function)
+        self.forced_jibe_send_button.setIcon(self.up_arrow)
+        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
+            self.forced_jibe_send_button
+        )
+        self.perform_forced_jibe_instead_of_tack_layout.addStretch()
         self.forced_jibe_checkbox = QCheckBox(
             "Perform forced jibe instead of tack?"
         )
-        self.left_tab2_layout.addWidget(self.forced_jibe_checkbox)
+        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
+            self.forced_jibe_checkbox
+        )
+        self.left_tab2_layout.addLayout(
+            self.perform_forced_jibe_instead_of_tack_layout
+        )
 
         # waypoint_accuracy
         self.waypoint_accuracy_layout = QHBoxLayout()
         self.waypoint_accuracy_label = QLabel("Waypoint Accuracy")
+        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_label)
+        self.waypoint_accuracy_send_button = QPushButton()
+        button_function = partial(
+            self.send_individual_parameter, "waypoint_accuracy"
+        )
+        self.waypoint_accuracy_send_button.clicked.connect(button_function)
+        self.waypoint_accuracy_send_button.setIcon(self.up_arrow)
+        self.waypoint_accuracy_label.setBuddy(
+            self.waypoint_accuracy_send_button
+        )
+        self.waypoint_accuracy_layout.addWidget(
+            self.waypoint_accuracy_send_button
+        )
         self.waypoint_accuracy_text_box = QLineEdit()
         self.waypoint_accuracy_label.setBuddy(self.waypoint_accuracy_text_box)
-        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_label)
         self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_text_box)
         self.left_tab2_layout.addLayout(self.waypoint_accuracy_layout)
 
         # no_sail_zone_size
         self.no_sail_zone_size_layout = QHBoxLayout()
         self.no_sail_zone_size_label = QLabel("No Sail Zone Size")
+        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_label)
+        self.no_sail_zone_size_send_button = QPushButton()
+        button_function = partial(
+            self.send_individual_parameter, "no_sail_zone_size"
+        )
+        self.no_sail_zone_size_send_button.clicked.connect(button_function)
+        self.no_sail_zone_size_send_button.setIcon(self.up_arrow)
+        self.no_sail_zone_size_label.setBuddy(
+            self.no_sail_zone_size_send_button
+        )
+        self.no_sail_zone_size_layout.addWidget(
+            self.no_sail_zone_size_send_button
+        )
         self.no_sail_zone_size_text_box = QLineEdit()
         self.no_sail_zone_size_label.setBuddy(self.no_sail_zone_size_text_box)
-        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_label)
         self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_text_box)
         self.left_tab2_layout.addLayout(self.no_sail_zone_size_layout)
 
         # autopilot_refresh_rate
         self.autopilot_refresh_rate_layout = QHBoxLayout()
         self.autopilot_refresh_rate_label = QLabel("Autopilot Refresh Rate")
+        self.autopilot_refresh_rate_layout.addWidget(
+            self.autopilot_refresh_rate_label
+        )
+        self.autopilot_refresh_rate_send_button = QPushButton()
+        self.autopilot_refresh_rate_send_button.setIcon(self.up_arrow)
+        button_function = partial(
+            self.send_individual_parameter, "autopilot_refresh_rate"
+        )
+        self.autopilot_refresh_rate_send_button.clicked.connect(button_function)
+        self.autopilot_refresh_rate_label.setBuddy(
+            self.autopilot_refresh_rate_send_button
+        )
+        self.autopilot_refresh_rate_layout.addWidget(
+            self.autopilot_refresh_rate_send_button
+        )
         self.autopilot_refresh_rate_text_box = QLineEdit()
         self.autopilot_refresh_rate_label.setBuddy(
             self.autopilot_refresh_rate_text_box
-        )
-        self.autopilot_refresh_rate_layout.addWidget(
-            self.autopilot_refresh_rate_label
         )
         self.autopilot_refresh_rate_layout.addWidget(
             self.autopilot_refresh_rate_text_box
@@ -219,9 +287,17 @@ class MainWindow(QWidget):
         # tack_distance
         self.tack_distance_layout = QHBoxLayout()
         self.tack_distance_label = QLabel("Tack Distance")
+        self.tack_distance_layout.addWidget(self.tack_distance_label)
+        self.tack_distance_send_button = QPushButton()
+        self.tack_distance_send_button.setIcon(self.up_arrow)
+        button_function = partial(
+            self.send_individual_parameter, "tack_distance"
+        )
+        self.tack_distance_send_button.clicked.connect(button_function)
+        self.tack_distance_label.setBuddy(self.tack_distance_send_button)
+        self.tack_distance_layout.addWidget(self.tack_distance_send_button)
         self.tack_distance_text_box = QLineEdit()
         self.tack_distance_label.setBuddy(self.tack_distance_text_box)
-        self.tack_distance_layout.addWidget(self.tack_distance_label)
         self.tack_distance_layout.addWidget(self.tack_distance_text_box)
         self.left_tab2_layout.addLayout(self.tack_distance_layout)
 
@@ -275,6 +351,7 @@ class MainWindow(QWidget):
         self.right_text_section.setMinimumWidth(300)
 
         self.send_waypoints_button = QPushButton("Send Waypoints")
+        self.send_waypoints_button.setIcon(self.up_arrow)
         self.send_waypoints_button.setMinimumWidth(300)
         self.send_waypoints_button.setMinimumHeight(50)
         self.send_waypoints_button.clicked.connect(self.send_waypoints)
@@ -403,9 +480,51 @@ class MainWindow(QWidget):
             print(f"Error: {e}")
             print(f"Parameters: {self.autopilot_parameters}")
 
+    def send_individual_parameter(self, parameter: str) -> None:
+        """
+        Send individual parameter to the server.
+
+        Parameters
+        ----------
+        parameter
+            The parameter to send. Should be one of the keys in `self.autopilot_parameters`.
+        """
+
+        try:
+            self.autopilot_parameters = {
+                "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
+                "waypoint_accuracy": float(
+                    self.waypoint_accuracy_text_box.text()
+                ),
+                "no_sail_zone_size": float(
+                    self.no_sail_zone_size_text_box.text()
+                ),
+                "autopilot_refresh_rate": float(
+                    self.autopilot_refresh_rate_text_box.text()
+                ),
+                "tack_distance": float(self.tack_distance_text_box.text()),
+            }
+            existing_params = requests.get(
+                TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
+                timeout=5,
+            ).json()
+            if existing_params == {}:
+                print("Connection successful but no parameters found.")
+            else:
+                existing_params[parameter] = self.autopilot_parameters[
+                    parameter
+                ]
+                requests.post(
+                    TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
+                    json={"value": existing_params},
+                ).json()
+        except ValueError or requests.exceptions.ConnectionError as e:
+            print(f"Error: {e}")
+            print(f"Inputed parameter: {parameter}")
+
     def save_parameters(self) -> None:
         """Save all parameters to a file."""
-        
+
         try:
             self.autopilot_parameters = {
                 "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
