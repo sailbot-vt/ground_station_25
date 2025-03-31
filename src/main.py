@@ -40,7 +40,7 @@ TELEMETRY_SERVER_ENDPOINTS = {
 WAYPOINTS_SERVER_URL = "http://localhost:3001/waypoints"
 
 
-HTML_MAP_PATH = os.getcwd() + "/src/main.html"
+HTML_MAP_PATH = Path(os.path.dirname(os.path.abspath(__file__)), "main.html")
 if not os.path.exists(HTML_MAP_PATH):
     print(f"Error: {HTML_MAP_PATH} not found.")
     sys.exit(1)
@@ -99,6 +99,7 @@ class TelemetryUpdater(QThread):
                 "vesc_data_time_since_vesc_startup_in_ms": 0,
                 "vesc_data_motor_temperature": 0,
             }
+            print("Failed to fetch boat data. Using default values.")
         self.boat_data_fetched.emit(boat_status)
 
     def run(self) -> None:
@@ -148,8 +149,8 @@ class MainWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.waypoints = []
-        self.autopilot_parameters = {}
         self.num_waypoints = 0
+        self.autopilot_parameters = {}
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
         self.up_arrow = self.style().standardIcon(
@@ -188,119 +189,11 @@ class MainWindow(QWidget):
         self.left_tab1_layout.addWidget(self.left_tab1_text_section)
         # endregion tab1: Telemetry data
 
-        # region tab2: Parameter input
-        # perform_forced_jibe_instead_of_tack
-        self.perform_forced_jibe_instead_of_tack_layout = QHBoxLayout()
-        self.forced_jibe_send_button = QPushButton()
-        button_function = partial(
-            self.send_individual_parameter,
-            "perform_forced_jibe_instead_of_tack",
-        )
-        self.forced_jibe_send_button.clicked.connect(button_function)
-        self.forced_jibe_send_button.setIcon(self.up_arrow)
-        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
-            self.forced_jibe_send_button
-        )
-        self.perform_forced_jibe_instead_of_tack_layout.addStretch()
-        self.forced_jibe_checkbox = QCheckBox(
-            "Perform forced jibe instead of tack?"
-        )
-        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
-            self.forced_jibe_checkbox
-        )
-        self.left_tab2_layout.addLayout(
-            self.perform_forced_jibe_instead_of_tack_layout
-        )
+        # region tab2: Autopilot parameter control
+        # region top section
+        self.autopilot_param_control_groupbox = QGroupBox("Parameter Control")
+        self.autopilot_param_control_layout = QVBoxLayout()
 
-        # waypoint_accuracy
-        self.waypoint_accuracy_layout = QHBoxLayout()
-        self.waypoint_accuracy_label = QLabel("Waypoint Accuracy")
-        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_label)
-        self.waypoint_accuracy_send_button = QPushButton()
-        button_function = partial(
-            self.send_individual_parameter, "waypoint_accuracy"
-        )
-        self.waypoint_accuracy_send_button.clicked.connect(button_function)
-        self.waypoint_accuracy_send_button.setIcon(self.up_arrow)
-        self.waypoint_accuracy_label.setBuddy(
-            self.waypoint_accuracy_send_button
-        )
-        self.waypoint_accuracy_layout.addWidget(
-            self.waypoint_accuracy_send_button
-        )
-        self.waypoint_accuracy_text_box = QLineEdit()
-        self.waypoint_accuracy_label.setBuddy(self.waypoint_accuracy_text_box)
-        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_text_box)
-        self.left_tab2_layout.addLayout(self.waypoint_accuracy_layout)
-
-        # no_sail_zone_size
-        self.no_sail_zone_size_layout = QHBoxLayout()
-        self.no_sail_zone_size_label = QLabel("No Sail Zone Size")
-        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_label)
-        self.no_sail_zone_size_send_button = QPushButton()
-        button_function = partial(
-            self.send_individual_parameter, "no_sail_zone_size"
-        )
-        self.no_sail_zone_size_send_button.clicked.connect(button_function)
-        self.no_sail_zone_size_send_button.setIcon(self.up_arrow)
-        self.no_sail_zone_size_label.setBuddy(
-            self.no_sail_zone_size_send_button
-        )
-        self.no_sail_zone_size_layout.addWidget(
-            self.no_sail_zone_size_send_button
-        )
-        self.no_sail_zone_size_text_box = QLineEdit()
-        self.no_sail_zone_size_label.setBuddy(self.no_sail_zone_size_text_box)
-        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_text_box)
-        self.left_tab2_layout.addLayout(self.no_sail_zone_size_layout)
-
-        # autopilot_refresh_rate
-        self.autopilot_refresh_rate_layout = QHBoxLayout()
-        self.autopilot_refresh_rate_label = QLabel("Autopilot Refresh Rate")
-        self.autopilot_refresh_rate_layout.addWidget(
-            self.autopilot_refresh_rate_label
-        )
-        self.autopilot_refresh_rate_send_button = QPushButton()
-        self.autopilot_refresh_rate_send_button.setIcon(self.up_arrow)
-        button_function = partial(
-            self.send_individual_parameter, "autopilot_refresh_rate"
-        )
-        self.autopilot_refresh_rate_send_button.clicked.connect(button_function)
-        self.autopilot_refresh_rate_label.setBuddy(
-            self.autopilot_refresh_rate_send_button
-        )
-        self.autopilot_refresh_rate_layout.addWidget(
-            self.autopilot_refresh_rate_send_button
-        )
-        self.autopilot_refresh_rate_text_box = QLineEdit()
-        self.autopilot_refresh_rate_label.setBuddy(
-            self.autopilot_refresh_rate_text_box
-        )
-        self.autopilot_refresh_rate_layout.addWidget(
-            self.autopilot_refresh_rate_text_box
-        )
-        self.left_tab2_layout.addLayout(self.autopilot_refresh_rate_layout)
-
-        # tack_distance
-        self.tack_distance_layout = QHBoxLayout()
-        self.tack_distance_label = QLabel("Tack Distance")
-        self.tack_distance_layout.addWidget(self.tack_distance_label)
-        self.tack_distance_send_button = QPushButton()
-        self.tack_distance_send_button.setIcon(self.up_arrow)
-        button_function = partial(
-            self.send_individual_parameter, "tack_distance"
-        )
-        self.tack_distance_send_button.clicked.connect(button_function)
-        self.tack_distance_label.setBuddy(self.tack_distance_send_button)
-        self.tack_distance_layout.addWidget(self.tack_distance_send_button)
-        self.tack_distance_text_box = QLineEdit()
-        self.tack_distance_label.setBuddy(self.tack_distance_text_box)
-        self.tack_distance_layout.addWidget(self.tack_distance_text_box)
-        self.left_tab2_layout.addLayout(self.tack_distance_layout)
-
-        self.left_tab2_layout.addStretch()
-        self.parameter_control_layout = QVBoxLayout()
-        self.left_tab2_group_box = QGroupBox("Parameter Control")
         self.left_tab2_reset_button = QPushButton("Reset Parameters")
         self.left_tab2_reset_button.clicked.connect(self.reset_parameters)
         self.left_tab2_send_button = QPushButton("Send Parameters")
@@ -315,18 +208,163 @@ class MainWindow(QWidget):
         self.left_tab2_save_button.setDisabled(False)
         self.left_tab2_load_button.setDisabled(False)
 
-        self.parameter_control_layout.addWidget(self.left_tab2_reset_button)
-        self.parameter_control_layout.addWidget(self.left_tab2_send_button)
-        self.parameter_control_layout.addWidget(self.left_tab2_save_button)
-        self.parameter_control_layout.addWidget(self.left_tab2_load_button)
-        self.left_tab2_group_box.setLayout(self.parameter_control_layout)
-        self.left_tab2_layout.addWidget(self.left_tab2_group_box)
+        self.autopilot_param_control_layout.addWidget(
+            self.left_tab2_reset_button
+        )
+        self.autopilot_param_control_layout.addWidget(
+            self.left_tab2_send_button
+        )
+        self.autopilot_param_control_layout.addWidget(
+            self.left_tab2_save_button
+        )
+        self.autopilot_param_control_layout.addWidget(
+            self.left_tab2_load_button
+        )
+        self.autopilot_param_control_groupbox.setLayout(
+            self.autopilot_param_control_layout
+        )
+        self.left_tab2_layout.addWidget(self.autopilot_param_control_groupbox)
+        # endregion top section
+
+        # region bottom section
+        self.autopilot_param_input_groupbox = QGroupBox("Parameter Input")
+        self.autopilot_param_input_layout = QVBoxLayout()
+
+        # perform_forced_jibe_instead_of_tack
+        self.perform_forced_jibe_instead_of_tack_layout = QHBoxLayout()
+        self.forced_jibe_label = QLabel("Forced jibe instead of tack")
+        self.forced_jibe_checkbox = QCheckBox()
+        self.forced_jibe_label.setBuddy(self.forced_jibe_checkbox)
+        self.perform_forced_jibe_send_button = (
+            self.autopilot_param_button_maker(
+                "send", "perform_forced_jibe_instead_of_tack"
+            )
+        )
+        self.perform_forced_jibe_reset_button = (
+            self.autopilot_param_button_maker(
+                "reset", "perform_forced_jibe_instead_of_tack"
+            )
+        )
+        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
+            self.forced_jibe_label
+        )
+        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
+            self.forced_jibe_checkbox
+        )
+        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
+            self.perform_forced_jibe_send_button
+        )
+        self.perform_forced_jibe_instead_of_tack_layout.addWidget(
+            self.perform_forced_jibe_reset_button
+        )
+        self.autopilot_param_input_layout.addLayout(
+            self.perform_forced_jibe_instead_of_tack_layout
+        )
+
+        # waypoint_accuracy
+        self.waypoint_accuracy_layout = QHBoxLayout()
+        self.waypoint_accuracy_label = QLabel("Waypoint Accuracy")
+        self.waypoint_accuracy_text_box = QLineEdit()
+        self.waypoint_accuracy_label.setBuddy(self.waypoint_accuracy_text_box)
+        self.waypoint_accuracy_send_button = self.autopilot_param_button_maker(
+            "send", "waypoint_accuracy"
+        )
+        self.waypoint_accuracy_reset_button = self.autopilot_param_button_maker(
+            "reset", "waypoint_accuracy"
+        )
+        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_label)
+        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_text_box)
+        self.waypoint_accuracy_layout.addWidget(
+            self.waypoint_accuracy_send_button
+        )
+        self.waypoint_accuracy_layout.addWidget(
+            self.waypoint_accuracy_reset_button
+        )
+        self.autopilot_param_input_layout.addLayout(
+            self.waypoint_accuracy_layout
+        )
+
+        # no_sail_zone_size
+        self.no_sail_zone_size_layout = QHBoxLayout()
+        self.no_sail_zone_size_label = QLabel("No Sail Zone Size")
+        self.no_sail_zone_size_text_box = QLineEdit()
+        self.no_sail_zone_size_label.setBuddy(self.no_sail_zone_size_text_box)
+        self.no_sail_zone_size_send_button = self.autopilot_param_button_maker(
+            "send", "no_sail_zone_size"
+        )
+        self.no_sail_zone_size_reset_button = self.autopilot_param_button_maker(
+            "reset", "no_sail_zone_size"
+        )
+        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_label)
+        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_text_box)
+        self.no_sail_zone_size_layout.addWidget(
+            self.no_sail_zone_size_send_button
+        )
+        self.no_sail_zone_size_layout.addWidget(
+            self.no_sail_zone_size_reset_button
+        )
+        self.autopilot_param_input_layout.addLayout(
+            self.no_sail_zone_size_layout
+        )
+
+        # autopilot_refresh_rate
+        self.autopilot_refresh_rate_layout = QHBoxLayout()
+        self.autopilot_refresh_rate_label = QLabel("Autopilot Refresh Rate")
+        self.autopilot_refresh_rate_text_box = QLineEdit()
+        self.autopilot_refresh_rate_label.setBuddy(
+            self.autopilot_refresh_rate_text_box
+        )
+        self.autopilot_refresh_rate_send_button = (
+            self.autopilot_param_button_maker("send", "autopilot_refresh_rate")
+        )
+        self.autopilot_refresh_rate_reset_button = (
+            self.autopilot_param_button_maker("reset", "autopilot_refresh_rate")
+        )
+        self.autopilot_refresh_rate_layout.addWidget(
+            self.autopilot_refresh_rate_label
+        )
+        self.autopilot_refresh_rate_layout.addWidget(
+            self.autopilot_refresh_rate_text_box
+        )
+        self.autopilot_refresh_rate_layout.addWidget(
+            self.autopilot_refresh_rate_send_button
+        )
+        self.autopilot_refresh_rate_layout.addWidget(
+            self.autopilot_refresh_rate_reset_button
+        )
+        self.autopilot_param_input_layout.addLayout(
+            self.autopilot_refresh_rate_layout
+        )
+
+        # tack_distance
+        self.tack_distance_layout = QHBoxLayout()
+        self.tack_distance_label = QLabel("Tack Distance")
+        self.tack_distance_text_box = QLineEdit()
+        self.tack_distance_label.setBuddy(self.tack_distance_text_box)
+        self.tack_distance_send_button = self.autopilot_param_button_maker(
+            "send", "tack_distance"
+        )
+        self.tack_distance_reset_button = self.autopilot_param_button_maker(
+            "reset", "tack_distance"
+        )
+        self.tack_distance_layout.addWidget(self.tack_distance_label)
+        self.tack_distance_layout.addWidget(self.tack_distance_text_box)
+        self.tack_distance_layout.addWidget(self.tack_distance_send_button)
+        self.tack_distance_layout.addWidget(self.tack_distance_reset_button)
+        self.autopilot_param_input_layout.addLayout(self.tack_distance_layout)
+
+        self.autopilot_param_input_layout.addStretch()
+        self.autopilot_param_input_groupbox.setLayout(
+            self.autopilot_param_input_layout
+        )
+        self.left_tab2_layout.addWidget(self.autopilot_param_input_groupbox)
+        # endregion bottom section
 
         self.left_tab1.setLayout(self.left_tab1_layout)
         self.left_tab2.setLayout(self.left_tab2_layout)
         self.left_layout.addTab(self.left_tab1, "Boat Data")
-        self.left_layout.addTab(self.left_tab2, "Parameter Input")
-        self.left_layout.setMinimumWidth(300)
+        self.left_layout.addTab(self.left_tab2, "Autopilot Control")
+        self.left_layout.setFixedWidth(300)
         self.main_layout.addWidget(self.left_layout, 0, 0)
         # endregion Parameter input
         # endregion left section
@@ -341,15 +379,16 @@ class MainWindow(QWidget):
         # endregion middle section
 
         # region right section
+        self.right_width = 285
         self.right_label = QLabel("Waypoints")
         self.right_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.right_text_section = QTextEdit()
         self.right_text_section.setReadOnly(True)
-        self.right_text_section.setMinimumWidth(300)
+        self.right_text_section.setFixedWidth(self.right_width)
 
         self.send_waypoints_button = QPushButton("Send Waypoints")
         self.send_waypoints_button.setIcon(self.up_arrow)
-        self.send_waypoints_button.setMinimumWidth(300)
+        self.send_waypoints_button.setFixedWidth(self.right_width)
         self.send_waypoints_button.setMinimumHeight(50)
         self.send_waypoints_button.clicked.connect(self.send_waypoints)
         self.send_waypoints_button.setDisabled(True)
@@ -519,6 +558,48 @@ class MainWindow(QWidget):
             print(f"Error: {e}")
             print(f"Inputed parameter: {parameter}")
 
+    def reset_individual_parameter(self, parameter: str) -> None:
+        """
+        Reset individual parameter to the default value.
+
+        Parameters
+        ----------
+        parameter
+            The parameter to reset. Should be one of the keys in `self.autopilot_parameters`.
+        """
+
+        try:
+            existing_params = requests.get(
+                TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
+                timeout=5,
+            ).json()
+            if existing_params == {}:
+                print("Connection successful but no parameters found.")
+            else:
+                self.autopilot_parameters[parameter] = existing_params[
+                    parameter
+                ]
+                self.forced_jibe_checkbox.setChecked(
+                    self.autopilot_parameters[
+                        "perform_forced_jibe_instead_of_tack"
+                    ]
+                )
+                self.waypoint_accuracy_text_box.setText(
+                    str(self.autopilot_parameters["waypoint_accuracy"])
+                )
+                self.no_sail_zone_size_text_box.setText(
+                    str(self.autopilot_parameters["no_sail_zone_size"])
+                )
+                self.autopilot_refresh_rate_text_box.setText(
+                    str(self.autopilot_parameters["autopilot_refresh_rate"])
+                )
+                self.tack_distance_text_box.setText(
+                    str(self.autopilot_parameters["tack_distance"])
+                )
+        except ValueError or requests.exceptions.ConnectionError as e:
+            print(f"Error: {e}")
+            print(f"Inputed parameter: {parameter}")
+
     def save_parameters(self) -> None:
         """Save all parameters to a file."""
 
@@ -619,9 +700,50 @@ class MainWindow(QWidget):
         if len(waypoints) != self.num_waypoints:
             self.can_send_waypoints = True
             self.num_waypoints = len(waypoints)
-        waypoints_text = ""
-        for waypoint in waypoints:
-            waypoints_text += f"Latitude: {round(waypoint[0], 6)}, Longitude: {round(waypoint[1], 6)}\n"
+        waypoints_text = """
+        <style>
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                font-family: Arial, sans-serif;
+                margin-top: 10px;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+            th {
+                color: white;
+                text-transform: uppercase;
+            }
+            tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+        </style>
+        <table>
+            <thead>
+                <tr>
+                    <th>Waypoint #</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                </tr>
+            </thead>
+            <tbody>
+        """
+        for i, waypoint in enumerate(waypoints):
+            waypoints_text += f"""
+                <tr>
+                    <td>{i}</td>
+                    <td>{round(waypoint[0], 6)}</td>
+                    <td>{round(waypoint[1], 6)}</td>
+                </tr>
+            """
+        waypoints_text += """
+            </tbody>
+        </table>
+        """
+
         self.right_text_section.setText(waypoints_text)
 
     def update_telemetry_display(
@@ -666,9 +788,50 @@ Motor Temperature: {boat_data.get("vesc_data_motor_temperature", "N/A")}°C
 
     # endregion pyqt thread functions
 
+    # region helper functions
+
+    def autopilot_param_button_maker(
+        self, action: str, param: str
+    ) -> QPushButton:
+        """
+        Create a button for autopilot parameters.
+
+        Parameters
+        ----------
+        action
+            The action to perform when the button is clicked, either "send" or "reset".
+        param
+            The parameter to set.
+
+        Returns
+        -------
+        QPushButton
+            The created button.
+        """
+
+        button = QPushButton()
+        button.setMaximumWidth(25)
+        if action == "send":
+            button.setIcon(self.up_arrow)
+            button.clicked.connect(
+                partial(self.send_individual_parameter, param)
+            )
+            return button
+        elif action == "reset":
+            button.setIcon(self.down_arrow)
+            button.clicked.connect(
+                partial(self.reset_individual_parameter, param)
+            )
+            return button
+        else:
+            raise ValueError("Invalid action. Use 'send' or 'reset'.")
+
+    # endregion helper functions
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
