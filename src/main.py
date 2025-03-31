@@ -26,6 +26,8 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QGroupBox,
     QStyle,
+    QTableWidget,
+    QTableWidgetItem,
 )
 
 
@@ -379,23 +381,22 @@ class MainWindow(QWidget):
         # endregion middle section
 
         # region right section
-        self.right_width = 285
+        self.right_width = 295
         self.right_label = QLabel("Waypoints")
         self.right_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.right_text_section = QTextEdit()
-        self.right_text_section.setReadOnly(True)
-        self.right_text_section.setFixedWidth(self.right_width)
+        self.right_table = QTableWidget()
+        self.right_table.setMinimumWidth(self.right_width)
 
         self.send_waypoints_button = QPushButton("Send Waypoints")
         self.send_waypoints_button.setIcon(self.up_arrow)
-        self.send_waypoints_button.setFixedWidth(self.right_width)
+        self.send_waypoints_button.setMinimumWidth(self.right_width)
         self.send_waypoints_button.setMinimumHeight(50)
         self.send_waypoints_button.clicked.connect(self.send_waypoints)
         self.send_waypoints_button.setDisabled(True)
         self.can_send_waypoints = False
 
         self.right_layout.addWidget(self.right_label)
-        self.right_layout.addWidget(self.right_text_section)
+        self.right_layout.addWidget(self.right_table)
         self.right_layout.addWidget(self.send_waypoints_button)
         self.main_layout.addLayout(self.right_layout, 0, 2)
         # endregion right section
@@ -700,51 +701,24 @@ class MainWindow(QWidget):
         if len(waypoints) != self.num_waypoints:
             self.can_send_waypoints = True
             self.num_waypoints = len(waypoints)
-        waypoints_text = """
-        <style>
-            table {
-                border-collapse: collapse;
-                width: 100%;
-                font-family: Arial, sans-serif;
-                margin-top: 10px;
-            }
-            th, td {
-                border: 1px solid #ddd;
-                padding: 8px;
-                text-align: left;
-            }
-            th {
-                color: white;
-                text-transform: uppercase;
-            }
-            tr:nth-child(even) {
-                background-color: #f2f2f2;
-            }
-        </style>
-        <table>
-            <thead>
-                <tr>
-                    <th>Waypoint #</th>
-                    <th>Latitude</th>
-                    <th>Longitude</th>
-                </tr>
-            </thead>
-            <tbody>
-        """
-        for i, waypoint in enumerate(waypoints):
-            waypoints_text += f"""
-                <tr>
-                    <td>{i}</td>
-                    <td>{round(waypoint[0], 6)}</td>
-                    <td>{round(waypoint[1], 6)}</td>
-                </tr>
-            """
-        waypoints_text += """
-            </tbody>
-        </table>
-        """
 
-        self.right_text_section.setText(waypoints_text)
+            self.right_table.clear()
+            self.right_table.setRowCount(0)
+            self.right_table.setColumnCount(2)
+            self.right_table.setHorizontalHeaderLabels(
+                ["Latitude", "Longitude"]
+            )
+
+            for waypoint in waypoints:
+                self.right_table.insertRow(self.right_table.rowCount())
+                for i, coord in enumerate(waypoint):
+                    item = QTableWidgetItem(str(round(coord, 10)))
+                    item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                    self.right_table.setItem(
+                        self.right_table.rowCount() - 1, i, item
+                    )
+            self.right_table.resizeColumnsToContents()
+            self.right_table.resizeRowsToContents()
 
     def update_telemetry_display(
         self, boat_data: dict[str, Union[str, float]]
