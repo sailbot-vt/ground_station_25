@@ -400,6 +400,7 @@ class MainWindow(QWidget):
         self.right_layout.addWidget(self.send_waypoints_button)
         self.main_layout.addLayout(self.right_layout, 0, 2)
         # endregion right section
+
         self.setLayout(self.main_layout)
         # endregion setup UI
 
