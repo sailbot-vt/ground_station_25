@@ -562,7 +562,7 @@ class MainWindow(QWidget):
 
     def reset_individual_parameter(self, parameter: str) -> None:
         """
-        Reset individual parameter to the default value.
+        Reset individual parameter to the value from the server.
 
         Parameters
         ----------
@@ -603,7 +603,12 @@ class MainWindow(QWidget):
             print(f"Inputed parameter: {parameter}")
 
     def save_parameters(self) -> None:
-        """Save all parameters to a file."""
+        """
+        Save all parameters to a file.
+
+        Files are stored in the `autopilot_params` directory and are named `params_<timestamp>.json`
+        where `<timestamp>` is nanoseconds since unix epoch.
+        """
 
         try:
             self.autopilot_parameters = {
@@ -636,7 +641,11 @@ class MainWindow(QWidget):
             print(f"Parameters: {self.autopilot_parameters}")
 
     def load_parameters(self) -> None:
-        """Load parameters from a file."""
+        """
+        Load parameters from the latest file in the `autopilot_params` directory.
+
+        If the directory does not exist, it will be created.
+        """
 
         try:
             if "autopilot_params" not in os.listdir(os.getcwd()):
