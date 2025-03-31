@@ -618,13 +618,18 @@ class MainWindow(QWidget):
                 ),
                 "tack_distance": float(self.tack_distance_text_box.text()),
             }
-            file_path = os.path.join(
-                os.getcwd(),
-                "autopilot_params/",
-                f"params_{time.time_ns()}.json",
+            if "autopilot_params" not in os.listdir(os.getcwd()):
+                print("autopilot_params directory not found. Creating it.")
+                os.makedirs(os.getcwd() + "/autopilot_params")
+
+            autopilot_params_dir = Path(os.getcwd(), "autopilot_params")
+            file_path = Path(
+                autopilot_params_dir, f"params_{time.time_ns()}.json"
             )
+
             with open(file_path, "w") as f:
                 json.dump(self.autopilot_parameters, f, indent=4)
+
         except ValueError as e:
             print(f"Error: {e}")
             print(f"Parameters: {self.autopilot_parameters}")
@@ -635,7 +640,7 @@ class MainWindow(QWidget):
         try:
             if "autopilot_params" not in os.listdir(os.getcwd()):
                 print("autopilot_params directory not found. Creating it.")
-                os.makedirs(os.getcwd() + "autopilot_params/")
+                os.makedirs(os.getcwd() + "/autopilot_params")
 
             autopilot_params_dir = Path(os.getcwd(), "autopilot_params")
             param_files = os.listdir(autopilot_params_dir)
