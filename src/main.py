@@ -1,142 +1,38 @@
 import os
-from pathlib import Path
 import sys
-import json
 import time
-from typing import Union
-from functools import partial
-
-
-import numpy as np
+import base64
 import requests
+import json
+import numpy as np
 
-from PyQt5.QtCore import QThread, QTimer, pyqtSignal, Qt
+import constants
+import thread_classes
+
+from functools import partial
+from pathlib import Path
+from typing import Union
+
+from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QImage
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
     QApplication,
-    QWidget,
+    QCheckBox,
     QGridLayout,
-    QTabWidget,
-    QVBoxLayout,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
-    QTextEdit,
-    QPushButton,
     QLineEdit,
-    QCheckBox,
-    QGroupBox,
+    QPushButton,
     QStyle,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-
-
-TELEMETRY_SERVER_ENDPOINTS = {
-    "boat_status": "http://18.191.164.84:8080/boat_status/get",
-    "waypoints_test": "http://18.191.164.84:8080/waypoints/test",
-    "get_waypoints": "http://18.191.164.84:8080/waypoints/get",
-    "set_waypoints": "http://18.191.164.84:8080/waypoints/set",
-    "get_autopilot_parameters": "http://18.191.164.84:8080/autopilot_parameters/get",
-    "set_autopilot_parameters": "http://18.191.164.84:8080/autopilot_parameters/set",
-}
-WAYPOINTS_SERVER_URL = "http://localhost:3001/waypoints"
-
-
-HTML_MAP_PATH = Path(os.path.dirname(os.path.abspath(__file__)), "main.html")
-if not os.path.exists(HTML_MAP_PATH):
-    print(f"Error: {HTML_MAP_PATH} not found.")
-    sys.exit(1)
-else:
-    HTML_MAP = open(HTML_MAP_PATH).read()
-
-
-class TelemetryUpdater(QThread):
-    """
-    Thread to fetch telemetry data from the telemetry server.
-
-    Inherits
-    -------
-    `QThread`
-
-    Attributes
-    ----------
-    boat_data_fetched : `pyqtSignal`
-        Signal to send boat data to the main thread. Emits a dictionary containing telemetry data.
-    """
-
-    boat_data_fetched = pyqtSignal(dict)
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def get_boat_data(self) -> None:
-        try:
-            boat_status = requests.get(
-                TELEMETRY_SERVER_ENDPOINTS["boat_status"], timeout=5
-            ).json()
-        except requests.RequestException:
-            boat_status = {
-                "position": [36.983731367697374, -76.29555376681454],
-                "state": "N/A",
-                "speed": 0,
-                "bearing": 0,
-                "heading": np.random.randint(0, 360),
-                "true_wind_speed": 0,
-                "true_wind_angle": 0,
-                "apparent_wind_speed": 0,
-                "apparent_wind_angle": 0,
-                "sail_angle": 0,
-                "rudder_angle": 0,
-                "current_waypoint_index": 0,
-                "current_route": [],
-                "parameters": {},
-                "vesc_data_rpm": 0,
-                "vesc_data_duty_cycle": 0.0,
-                "vesc_data_amp_hours": 0.0,
-                "vesc_data_amp_hours_charged": 0,
-                "vesc_data_current_to_vesc": 0,
-                "vesc_data_voltage_to_motor": 0,
-                "vesc_data_voltage_to_vesc": 0,
-                "vesc_data_wattage_to_motor": 0,
-                "vesc_data_time_since_vesc_startup_in_ms": 0,
-                "vesc_data_motor_temperature": 0,
-            }
-            print("Failed to fetch boat data. Using default values.")
-        self.boat_data_fetched.emit(boat_status)
-
-    def run(self) -> None:
-        self.get_boat_data()
-
-
-class JSWaypointFetcher(QThread):
-    """
-    Thread to fetch waypoints from the local server.
-
-    Inherits
-    -------
-    `QThread`
-
-    Attributes
-    ----------
-    waypoints_fetched : `pyqtSignal`
-        Signal to send waypoints to the main thread. Emits a list of lists containing
-        waypoints, where each waypoint is a list of `[latitude, longitude]`.
-    """
-
-    waypoints_fetched = pyqtSignal(list)
-
-    def __init__(self) -> None:
-        super().__init__()
-
-    def get_waypoints(self) -> None:
-        try:
-            waypoints = requests.get(WAYPOINTS_SERVER_URL).json()
-        except requests.RequestException:
-            waypoints = []
-        self.waypoints_fetched.emit(waypoints)
-
-    def run(self) -> None:
-        self.get_waypoints()
 
 
 class MainWindow(QWidget):
@@ -155,24 +51,22 @@ class MainWindow(QWidget):
         self.autopilot_parameters = {}
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(100, 100, 800, 600)
-        self.up_arrow = self.style().standardIcon(
-            QStyle.StandardPixmap.SP_ArrowUp
-        )
-        self.down_arrow = self.style().standardIcon(
-            QStyle.StandardPixmap.SP_ArrowDown
-        )
+        self.up_arrow = self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowUp)
+        self.down_arrow = self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowDown)
         self.right_arrow = self.style().standardIcon(
             QStyle.StandardPixmap.SP_ArrowRight
         )
-        self.left_arrow = self.style().standardIcon(
-            QStyle.StandardPixmap.SP_ArrowLeft
-        )
+        self.left_arrow = self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowLeft)
 
         # region define layouts
         self.main_layout = QGridLayout()
+        self.main_layout.setObjectName("main_layout")
         self.left_layout = QTabWidget()
+        self.left_layout.setObjectName("left_layout")
         self.middle_layout = QGridLayout()
+        self.middle_layout.setObjectName("middle_layout")
         self.right_layout = QVBoxLayout()
+        self.right_layout.setObjectName("right_layout")
         self.left_tab1_layout = QVBoxLayout()
         self.left_tab2_layout = QVBoxLayout()
         self.left_tab1 = QWidget()
@@ -204,24 +98,20 @@ class MainWindow(QWidget):
         self.left_tab2_save_button.clicked.connect(self.save_parameters)
         self.left_tab2_load_button = QPushButton("Load Parameters from File")
         self.left_tab2_load_button.clicked.connect(self.load_parameters)
+        self.left_tab2_send_image_button = QPushButton("Send Image")
+        self.left_tab2_send_image_button.clicked.connect(self.send_image)
 
         self.left_tab2_reset_button.setDisabled(False)
         self.left_tab2_send_button.setDisabled(False)
         self.left_tab2_save_button.setDisabled(False)
         self.left_tab2_load_button.setDisabled(False)
+        self.left_tab2_send_image_button.setDisabled(False)
 
-        self.autopilot_param_control_layout.addWidget(
-            self.left_tab2_reset_button
-        )
-        self.autopilot_param_control_layout.addWidget(
-            self.left_tab2_send_button
-        )
-        self.autopilot_param_control_layout.addWidget(
-            self.left_tab2_save_button
-        )
-        self.autopilot_param_control_layout.addWidget(
-            self.left_tab2_load_button
-        )
+        self.autopilot_param_control_layout.addWidget(self.left_tab2_reset_button)
+        self.autopilot_param_control_layout.addWidget(self.left_tab2_send_button)
+        self.autopilot_param_control_layout.addWidget(self.left_tab2_save_button)
+        self.autopilot_param_control_layout.addWidget(self.left_tab2_load_button)
+        self.autopilot_param_control_layout.addWidget(self.left_tab2_send_image_button)
         self.autopilot_param_control_groupbox.setLayout(
             self.autopilot_param_control_layout
         )
@@ -237,15 +127,11 @@ class MainWindow(QWidget):
         self.forced_jibe_label = QLabel("Forced jibe instead of tack")
         self.forced_jibe_checkbox = QCheckBox()
         self.forced_jibe_label.setBuddy(self.forced_jibe_checkbox)
-        self.perform_forced_jibe_send_button = (
-            self.autopilot_param_button_maker(
-                "send", "perform_forced_jibe_instead_of_tack"
-            )
+        self.perform_forced_jibe_send_button = self.autopilot_param_button_maker(
+            "send", "perform_forced_jibe_instead_of_tack"
         )
-        self.perform_forced_jibe_reset_button = (
-            self.autopilot_param_button_maker(
-                "reset", "perform_forced_jibe_instead_of_tack"
-            )
+        self.perform_forced_jibe_reset_button = self.autopilot_param_button_maker(
+            "reset", "perform_forced_jibe_instead_of_tack"
         )
         self.perform_forced_jibe_instead_of_tack_layout.addWidget(
             self.forced_jibe_label
@@ -276,15 +162,9 @@ class MainWindow(QWidget):
         )
         self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_label)
         self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_text_box)
-        self.waypoint_accuracy_layout.addWidget(
-            self.waypoint_accuracy_send_button
-        )
-        self.waypoint_accuracy_layout.addWidget(
-            self.waypoint_accuracy_reset_button
-        )
-        self.autopilot_param_input_layout.addLayout(
-            self.waypoint_accuracy_layout
-        )
+        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_send_button)
+        self.waypoint_accuracy_layout.addWidget(self.waypoint_accuracy_reset_button)
+        self.autopilot_param_input_layout.addLayout(self.waypoint_accuracy_layout)
 
         # no_sail_zone_size
         self.no_sail_zone_size_layout = QHBoxLayout()
@@ -299,32 +179,22 @@ class MainWindow(QWidget):
         )
         self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_label)
         self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_text_box)
-        self.no_sail_zone_size_layout.addWidget(
-            self.no_sail_zone_size_send_button
-        )
-        self.no_sail_zone_size_layout.addWidget(
-            self.no_sail_zone_size_reset_button
-        )
-        self.autopilot_param_input_layout.addLayout(
-            self.no_sail_zone_size_layout
-        )
+        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_send_button)
+        self.no_sail_zone_size_layout.addWidget(self.no_sail_zone_size_reset_button)
+        self.autopilot_param_input_layout.addLayout(self.no_sail_zone_size_layout)
 
         # autopilot_refresh_rate
         self.autopilot_refresh_rate_layout = QHBoxLayout()
         self.autopilot_refresh_rate_label = QLabel("Autopilot Refresh Rate")
         self.autopilot_refresh_rate_text_box = QLineEdit()
-        self.autopilot_refresh_rate_label.setBuddy(
-            self.autopilot_refresh_rate_text_box
+        self.autopilot_refresh_rate_label.setBuddy(self.autopilot_refresh_rate_text_box)
+        self.autopilot_refresh_rate_send_button = self.autopilot_param_button_maker(
+            "send", "autopilot_refresh_rate"
         )
-        self.autopilot_refresh_rate_send_button = (
-            self.autopilot_param_button_maker("send", "autopilot_refresh_rate")
+        self.autopilot_refresh_rate_reset_button = self.autopilot_param_button_maker(
+            "reset", "autopilot_refresh_rate"
         )
-        self.autopilot_refresh_rate_reset_button = (
-            self.autopilot_param_button_maker("reset", "autopilot_refresh_rate")
-        )
-        self.autopilot_refresh_rate_layout.addWidget(
-            self.autopilot_refresh_rate_label
-        )
+        self.autopilot_refresh_rate_layout.addWidget(self.autopilot_refresh_rate_label)
         self.autopilot_refresh_rate_layout.addWidget(
             self.autopilot_refresh_rate_text_box
         )
@@ -334,9 +204,7 @@ class MainWindow(QWidget):
         self.autopilot_refresh_rate_layout.addWidget(
             self.autopilot_refresh_rate_reset_button
         )
-        self.autopilot_param_input_layout.addLayout(
-            self.autopilot_refresh_rate_layout
-        )
+        self.autopilot_param_input_layout.addLayout(self.autopilot_refresh_rate_layout)
 
         # tack_distance
         self.tack_distance_layout = QHBoxLayout()
@@ -356,9 +224,7 @@ class MainWindow(QWidget):
         self.autopilot_param_input_layout.addLayout(self.tack_distance_layout)
 
         self.autopilot_param_input_layout.addStretch()
-        self.autopilot_param_input_groupbox.setLayout(
-            self.autopilot_param_input_layout
-        )
+        self.autopilot_param_input_groupbox.setLayout(self.autopilot_param_input_layout)
         self.left_tab2_layout.addWidget(self.autopilot_param_input_groupbox)
         # endregion bottom section
 
@@ -373,7 +239,7 @@ class MainWindow(QWidget):
 
         # region middle section
         self.browser = QWebEngineView()
-        self.browser.setHtml(HTML_MAP)
+        self.browser.setHtml(constants.HTML_MAP)
         self.browser.setMinimumWidth(700)
         self.browser.setMinimumHeight(700)
         self.middle_layout.addWidget(self.browser, 0, 1)
@@ -406,24 +272,25 @@ class MainWindow(QWidget):
 
         self.get_autopilot_parameters()
 
-        self.telemetry_handler = TelemetryUpdater()
-        self.js_waypoint_handler = JSWaypointFetcher()
+        self.telemetry_handler = thread_classes.TelemetryUpdater()
+        self.js_waypoint_handler = thread_classes.JSWaypointFetcher()
+        self.image_handler = thread_classes.ImageFetcher()
 
         # Connect signals to update UI
-        self.telemetry_handler.boat_data_fetched.connect(
-            self.update_telemetry_display
-        )
+        self.telemetry_handler.boat_data_fetched.connect(self.update_telemetry_display)
         self.js_waypoint_handler.waypoints_fetched.connect(
             self.update_waypoints_display
         )
+        self.image_handler.image_fetched.connect(self.update_image_display)
 
-        # Slow timer for telemetry
+        # Slow timer
         self.slow_timer = QTimer(self)
         self.slow_timer.timeout.connect(self.update_telemetry_starter)
 
-        # Fast timer for waypoints
+        # Fast timer
         self.fast_timer = QTimer(self)
         self.fast_timer.timeout.connect(self.js_waypoint_handler_starter)
+        self.fast_timer.timeout.connect(self.update_image_starter)
 
         # Start timers
         self.fast_timer.start(100)  # milliseconds
@@ -443,7 +310,7 @@ class MainWindow(QWidget):
         if not test:
             try:
                 requests.post(
-                    TELEMETRY_SERVER_ENDPOINTS["set_waypoints"],
+                    constants.TELEMETRY_SERVER_ENDPOINTS["set_waypoints"],
                     json={"value": self.waypoints},
                     timeout=5,
                 ).json()
@@ -453,7 +320,7 @@ class MainWindow(QWidget):
         else:
             try:
                 requests.post(
-                    TELEMETRY_SERVER_ENDPOINTS["waypoints_test"],
+                    constants.TELEMETRY_SERVER_ENDPOINTS["waypoints_test"],
                     json={"value": self.waypoints},
                     timeout=5,
                 ).json()
@@ -466,7 +333,7 @@ class MainWindow(QWidget):
 
         try:
             remote_params = requests.get(
-                TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
                 timeout=5,
             ).json()
             if remote_params == {}:
@@ -474,9 +341,7 @@ class MainWindow(QWidget):
             else:
                 self.autopilot_parameters = remote_params
                 self.forced_jibe_checkbox.setChecked(
-                    self.autopilot_parameters[
-                        "perform_forced_jibe_instead_of_tack"
-                    ]
+                    self.autopilot_parameters["perform_forced_jibe_instead_of_tack"]
                 )
                 self.waypoint_accuracy_text_box.setText(
                     str(self.autopilot_parameters["waypoint_accuracy"])
@@ -499,19 +364,15 @@ class MainWindow(QWidget):
         try:
             self.autopilot_parameters = {
                 "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
-                "waypoint_accuracy": float(
-                    self.waypoint_accuracy_text_box.text()
-                ),
-                "no_sail_zone_size": float(
-                    self.no_sail_zone_size_text_box.text()
-                ),
+                "waypoint_accuracy": float(self.waypoint_accuracy_text_box.text()),
+                "no_sail_zone_size": float(self.no_sail_zone_size_text_box.text()),
                 "autopilot_refresh_rate": float(
                     self.autopilot_refresh_rate_text_box.text()
                 ),
                 "tack_distance": float(self.tack_distance_text_box.text()),
             }
             requests.post(
-                TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
+                constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
                 json={"value": self.autopilot_parameters},
             ).json()
         except ValueError or requests.exceptions.ConnectionError as e:
@@ -531,29 +392,23 @@ class MainWindow(QWidget):
         try:
             self.autopilot_parameters = {
                 "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
-                "waypoint_accuracy": float(
-                    self.waypoint_accuracy_text_box.text()
-                ),
-                "no_sail_zone_size": float(
-                    self.no_sail_zone_size_text_box.text()
-                ),
+                "waypoint_accuracy": float(self.waypoint_accuracy_text_box.text()),
+                "no_sail_zone_size": float(self.no_sail_zone_size_text_box.text()),
                 "autopilot_refresh_rate": float(
                     self.autopilot_refresh_rate_text_box.text()
                 ),
                 "tack_distance": float(self.tack_distance_text_box.text()),
             }
             existing_params = requests.get(
-                TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
                 timeout=5,
             ).json()
             if existing_params == {}:
                 print("Connection successful but no parameters found.")
             else:
-                existing_params[parameter] = self.autopilot_parameters[
-                    parameter
-                ]
+                existing_params[parameter] = self.autopilot_parameters[parameter]
                 requests.post(
-                    TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
+                    constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
                     json={"value": existing_params},
                 ).json()
         except ValueError or requests.exceptions.ConnectionError as e:
@@ -572,19 +427,15 @@ class MainWindow(QWidget):
 
         try:
             existing_params = requests.get(
-                TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
                 timeout=5,
             ).json()
             if existing_params == {}:
                 print("Connection successful but no parameters found.")
             else:
-                self.autopilot_parameters[parameter] = existing_params[
-                    parameter
-                ]
+                self.autopilot_parameters[parameter] = existing_params[parameter]
                 self.forced_jibe_checkbox.setChecked(
-                    self.autopilot_parameters[
-                        "perform_forced_jibe_instead_of_tack"
-                    ]
+                    self.autopilot_parameters["perform_forced_jibe_instead_of_tack"]
                 )
                 self.waypoint_accuracy_text_box.setText(
                     str(self.autopilot_parameters["waypoint_accuracy"])
@@ -613,24 +464,15 @@ class MainWindow(QWidget):
         try:
             self.autopilot_parameters = {
                 "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
-                "waypoint_accuracy": float(
-                    self.waypoint_accuracy_text_box.text()
-                ),
-                "no_sail_zone_size": float(
-                    self.no_sail_zone_size_text_box.text()
-                ),
+                "waypoint_accuracy": float(self.waypoint_accuracy_text_box.text()),
+                "no_sail_zone_size": float(self.no_sail_zone_size_text_box.text()),
                 "autopilot_refresh_rate": float(
                     self.autopilot_refresh_rate_text_box.text()
                 ),
                 "tack_distance": float(self.tack_distance_text_box.text()),
             }
-            if "autopilot_params" not in os.listdir(os.getcwd()):
-                print("autopilot_params directory not found. Creating it.")
-                os.makedirs(os.getcwd() + "/autopilot_params")
-
-            autopilot_params_dir = Path(os.getcwd(), "autopilot_params")
             file_path = Path(
-                autopilot_params_dir, f"params_{time.time_ns()}.json"
+                constants.AUTO_PILOT_PARAMS_DIR, f"params_{time.time_ns()}.json"
             )
 
             with open(file_path, "w") as f:
@@ -648,23 +490,18 @@ class MainWindow(QWidget):
         """
 
         try:
-            if "autopilot_params" not in os.listdir(os.getcwd()):
-                print("autopilot_params directory not found. Creating it.")
-                os.makedirs(os.getcwd() + "/autopilot_params")
-
-            autopilot_params_dir = Path(os.getcwd(), "autopilot_params")
-            param_files = os.listdir(autopilot_params_dir)
+            param_files = os.listdir(constants.AUTO_PILOT_PARAMS_DIR)
             if not param_files:
                 print("No parameter files found.")
 
             else:
-                latest_param_file = Path(autopilot_params_dir, max(param_files))
+                latest_param_file = Path(
+                    constants.AUTO_PILOT_PARAMS_DIR, max(param_files)
+                )
                 with open(latest_param_file, "r") as f:
                     self.autopilot_parameters = json.load(f)
                     self.forced_jibe_checkbox.setChecked(
-                        self.autopilot_parameters[
-                            "perform_forced_jibe_instead_of_tack"
-                        ]
+                        self.autopilot_parameters["perform_forced_jibe_instead_of_tack"]
                     )
                     self.waypoint_accuracy_text_box.setText(
                         str(self.autopilot_parameters["waypoint_accuracy"])
@@ -680,6 +517,30 @@ class MainWindow(QWidget):
                     )
         except FileNotFoundError as e:
             print(e)
+
+    def send_image(self) -> None:
+        """
+        Send image to the server.
+
+        This function only for testing purposes.
+        """
+
+        try:
+            # read image from file and encode it to base64
+            image = Path(constants.ASSETS_DIR, "test.jpg")
+            with open(image, "rb") as f:
+                image = f.read()
+            base64_encoded_image = base64.b64encode(image).decode("utf-8")
+            autopilot_parameters = self.autopilot_parameters
+            autopilot_parameters["current_camera_image"] = base64_encoded_image
+            requests.post(
+                constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
+                json={"value": autopilot_parameters},
+            ).json()
+        except requests.exceptions.ConnectionError as e:
+            print(f"Connection error: {e}")
+        except FileNotFoundError as e:
+            print(f"File not found: {e}")
 
     def reset_parameters(self) -> None:
         """Reset all parameters to values from the server."""
@@ -701,6 +562,12 @@ class MainWindow(QWidget):
         if not self.telemetry_handler.isRunning():
             self.telemetry_handler.start()
 
+    def update_image_starter(self) -> None:
+        """Starts the image handler thread."""
+
+        if not self.image_handler.isRunning():
+            self.image_handler.start()
+
     def update_waypoints_display(self, waypoints: list[list[float]]) -> None:
         """
         Update waypoints display with fetched waypoints.
@@ -720,23 +587,22 @@ class MainWindow(QWidget):
             self.right_table.clear()
             self.right_table.setRowCount(0)
             self.right_table.setColumnCount(2)
-            self.right_table.setHorizontalHeaderLabels(
-                ["Latitude", "Longitude"]
-            )
+            self.right_table.setHorizontalHeaderLabels(["Latitude", "Longitude"])
 
             for waypoint in waypoints:
                 self.right_table.insertRow(self.right_table.rowCount())
                 for i, coord in enumerate(waypoint):
-                    item = QTableWidgetItem(str(round(coord, 10)))
+                    item = QTableWidgetItem(f"{coord:.13f}")
                     item.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                    self.right_table.setItem(
-                        self.right_table.rowCount() - 1, i, item
-                    )
+                    self.right_table.setItem(self.right_table.rowCount() - 1, i, item)
             self.right_table.resizeColumnsToContents()
             self.right_table.resizeRowsToContents()
 
     def update_telemetry_display(
-        self, boat_data: dict[str, Union[str, float]]
+        self,
+        boat_data: dict[
+            str, Union[float, str, tuple[float, float], list[tuple[float, float]]]
+        ],
     ) -> None:
         """
         Update telemetry display with boat data.
@@ -744,10 +610,11 @@ class MainWindow(QWidget):
         Parameters
         ----------
         boat_data
-            Dictionary containing boat data fetched from the server.
+            Dictionary containing boat data fetched from the telemetry server.
         """
 
         telemetry_text = f"""Boat Info:
+Position: {boat_data.get("position")[0]:.8f}, {boat_data.get("position")[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", "N/A")} knots
 Bearing: {boat_data.get("bearing", "N/A")}°
@@ -773,15 +640,27 @@ Wattage to Motor: {boat_data.get("vesc_data_wattage_to_motor", "N/A")} W
 Time Since VESC Startup: {boat_data.get("vesc_data_time_since_vesc_startup_in_ms", "N/A")} ms
 Motor Temperature: {boat_data.get("vesc_data_motor_temperature", "N/A")}°C
 """
+        if isinstance(boat_data.get("position"), tuple):
+            js_code = f"map.update_boat_location({boat_data.get('position')[0]}, {boat_data.get('position')[1]})"
+            self.browser.page().runJavaScript(js_code)
         self.left_tab1_text_section.setText(telemetry_text)
+
+    def update_image_display(self, image: np.ndarray) -> None:
+        """
+        Update image display with fetched image.
+
+        Parameters
+        ----------
+        image
+            Numpy array containing the image fetched from the server.
+        """
+        pass
 
     # endregion pyqt thread functions
 
     # region helper functions
 
-    def autopilot_param_button_maker(
-        self, action: str, param: str
-    ) -> QPushButton:
+    def autopilot_param_button_maker(self, action: str, param: str) -> QPushButton:
         """
         Create a button for autopilot parameters.
 
@@ -802,15 +681,11 @@ Motor Temperature: {boat_data.get("vesc_data_motor_temperature", "N/A")}°C
         button.setMaximumWidth(25)
         if action == "send":
             button.setIcon(self.up_arrow)
-            button.clicked.connect(
-                partial(self.send_individual_parameter, param)
-            )
+            button.clicked.connect(partial(self.send_individual_parameter, param))
             return button
         elif action == "reset":
             button.setIcon(self.down_arrow)
-            button.clicked.connect(
-                partial(self.reset_individual_parameter, param)
-            )
+            button.clicked.connect(partial(self.reset_individual_parameter, param))
             return button
         else:
             raise ValueError("Invalid action. Use 'send' or 'reset'.")

@@ -27,59 +27,64 @@
             static map_options = {
                 center: [36.983731367697374, -76.29555376681454],
                 zoom: 13
-            }
+            };
             static boat_icon = L.icon({
                 iconUrl: "https://github.com/sailbot-vt/ground_station_25/blob/main/assets/boat.png?raw=true",
                 iconSize: [50, 50],
                 iconAnchor: [25, 25]
-            })
+            });
             static wind_icon = L.icon({
                 iconUrl: "https://github.com/sailbot-vt/ground_station_25/blob/main/assets/arrow.png?raw=true",
                 iconSize: [30, 30],
                 iconAnchor: [15, 15]
-            })
+            });
 
             constructor() {
+                this.waypoints = [];
                 this.boat = {
                     heading: 0,
                     location: [36.983731367697374, -76.29555376681454]
-                }
-                this.map = L.map("map", map_interface.map_options)
-                this.waypoints = []
-                
+                };
+                this.min_zoom = 13;
+                this.max_zoom = 20;
+                this.map = L.map("map", map_interface.map_options);
+
                 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-                    maxZoom: 18
-                }).addTo(this.map)
+                    minZoom: this.min_zoom,
+                    maxZoom: this.max_zoom,
+                }).addTo(this.map);
 
                 // Click event to add waypoint
                 this.map.on("click", e => {
                     this.add_waypoint(e.latlng.lat, e.latlng.lng);
-                })
+                });
 
                 // Right-click event to remove waypoint
                 this.map.on("contextmenu", e => {
-                    let closest_index = -1
-                    let closest_distance = Infinity
+                    let zoom = this.map.getZoom() == this.min_zoom ? this.map.getZoom() + 1 : this.map.getZoom();
+                    let closest_index = -1;
+                    let closest_distance = Infinity;
                     this.waypoints.forEach((waypoint, index) => {
                         const distance = Math.sqrt(
                             (waypoint[0] - e.latlng.lat) ** 2 +
                             (waypoint[1] - e.latlng.lng) ** 2
-                        )
+                        );
                         if (distance < closest_distance && distance < 0.05) {
-                            closest_index = index
-                            closest_distance = distance
+                            closest_index = index;
+                            closest_distance = distance;
                         }
                     })
                     if (closest_index !== -1) {
                         this.remove_waypoint(closest_index);
                     }
-                })
+                });
 
+                // Add boat icon to map
                 this.boat_marker = L.marker(this.boat.location, {
                     icon: map_interface.boat_icon,
                     rotationAngle: this.boat.heading,
                     rotationOrigin: "center"
-                }).addTo(this.map)
+                }).addTo(this.map);
             }
 
             async sync_waypoints() {
@@ -105,7 +110,6 @@
                 }
             }
 
-
             add_waypoint(lat, lon) {
                 this.waypoints.push([lat, lon]);
                 L.marker([lat, lon]).addTo(this.map);
@@ -125,31 +129,11 @@
                 this.sync_waypoints();
             }
 
-            add_wind_arrow(lat, lon, wind_dir, wind_speed) {
-                // Skip adding if too far from the boat
-                if (
-                    Math.abs(lat - this.boat.location[0]) > 0.5 ||
-                    Math.abs(lon - this.boat.location[1]) > 0.5
-                ) {
-                    return
-                }
-
-                var windArrowMarker = L.marker([lat, lon], {
-                    icon: map_interface.wind_icon,
-                    rotationAngle: wind_dir,
-                    rotationOrigin: "center"
-                }).addTo(this.map)
-
-                windArrowMarker.bindPopup(`Wind: ${wind_dir}°, ${wind_speed} m/s`)
+            update_boat_location(lat, lon) {
+                this.boat.location = [lat, lon];
+                this.boat_marker.setLatLng(this.boat.location);
+                this.map.setView(this.boat.location, 15);
             }
-
-            clear_wind_arrows() {
-                this.map.eachLayer(layer => {
-                    if (layer instanceof L.Marker && layer._icon.src.includes("arrow.png")) {
-                        this.map.removeLayer(layer);
-                    }
-                });
-}
 
             focus_map_on_waypoint(lat, lon) {
                 this.map.setView([lat, lon], 15);
