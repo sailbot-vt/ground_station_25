@@ -3,3 +3,4 @@
 .pytest_cache
 node_modules
 autopilot_params
+src/__pycache__/**

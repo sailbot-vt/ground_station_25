@@ -294,7 +294,7 @@ class MainWindow(QWidget):
 
         # Start timers
         self.fast_timer.start(100)  # milliseconds
-        self.slow_timer.start(1000)  # milliseconds
+        self.slow_timer.start(500)  # milliseconds
 
     # region button functions
     def send_waypoints(self, test: bool = False) -> None:
