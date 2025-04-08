@@ -49,7 +49,8 @@ class MainWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.waypoints = []
-        # contains []
+        # contains the latest 3 entries of boat data
+        # when the array is full, the oldest entry is replaced with the new one
         self.boat_data = np.empty(3, dtype=dict)
         self.boat_data_counter = 0
         self.num_waypoints = 0
