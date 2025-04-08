@@ -3,4 +3,5 @@
 .pytest_cache
 node_modules
 autopilot_params
+boat_data
 src/__pycache__

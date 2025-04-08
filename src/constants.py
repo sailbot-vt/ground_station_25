@@ -27,14 +27,14 @@ try:
     HTML_MAP_PATH = Path(SRC_DIR / "map.html")
     HTML_MAP = open(HTML_MAP_PATH).read()
 
-    if "autopilot_params" not in os.listdir(SRC_DIR):
-        os.makedirs(SRC_DIR / "autopilot_params")
+    if "autopilot_params" not in os.listdir(TOP_LEVEL_DIR):
+        os.makedirs(TOP_LEVEL_DIR / "autopilot_params")
 
-    if "boat_data" not in os.listdir(SRC_DIR):
-        os.makedirs(SRC_DIR / "boat_data")
+    if "boat_data" not in os.listdir(TOP_LEVEL_DIR):
+        os.makedirs(TOP_LEVEL_DIR / "boat_data")
 
-    AUTO_PILOT_PARAMS_DIR = Path(SRC_DIR / "autopilot_params")
-    BOAT_DATA_DIR = Path(SRC_DIR / "boat_data")
+    AUTO_PILOT_PARAMS_DIR = Path(TOP_LEVEL_DIR / "autopilot_params")
+    BOAT_DATA_DIR = Path(TOP_LEVEL_DIR / "boat_data")
     ASSETS_DIR = Path(TOP_LEVEL_DIR / "assets")
 
 except Exception as e:

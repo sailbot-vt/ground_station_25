@@ -559,7 +559,7 @@ class MainWindow(QWidget):
 
     def save_boat_data(self) -> None:
         """
-        Saves boat data to a file.
+        Saves latest entry in the `self.boat_data` array to a file.
 
         Files are stored in the `boat_data` directory and are named `boat_data_<timestamp>.json`
         where `<timestamp>` is nanoseconds since unix epoch.
@@ -569,11 +569,16 @@ class MainWindow(QWidget):
             file_path = Path(
                 constants.BOAT_DATA_DIR, f"boat_data_{time.time_ns()}.json"
             )
+            if self.boat_data_counter >= len(self.boat_data):
+                boat_data = self.boat_data[
+                    [self.boat_data_counter % len(self.boat_data)]
+                ]
+            else:
+                boat_data = self.boat_data[self.boat_data_counter]
             with open(file_path, "w") as f:
-                json.dump(self.boat_data.tolist(), f, indent=4)
-        except ValueError as e:
+                json.dump(boat_data[0], f, indent=4)
+        except Exception as e:
             print(f"Error: {e}")
-            print(f"Boat data: {self.boat_data}")
 
     # endregion button functions
 
