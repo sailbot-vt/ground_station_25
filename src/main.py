@@ -1,3 +1,4 @@
+# region imports
 import os
 import sys
 import time
@@ -33,6 +34,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+# endregion imports
 
 
 class MainWindow(QWidget):
