@@ -6,9 +6,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QFileDialog,
     QHBoxLayout,
-    QLabel,
     QPushButton,
-    QSizePolicy,
     QSlider,
     QStyle,
     QVBoxLayout,
@@ -83,9 +81,7 @@ class VideoPlayer(QWidget):
         )
 
         if fileName != "":
-            self.mediaPlayer.setMedia(
-                QMediaContent(QUrl.fromLocalFile(fileName))
-            )
+            self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(fileName)))
             self.playButton.setEnabled(True)
             self.statusBar.showMessage(fileName)
             self.play()
