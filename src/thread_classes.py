@@ -29,14 +29,14 @@ class TelemetryUpdater(QThread):
     def get_boat_data(self) -> None:
         try:
             boat_status: dict[
-                str, Union[float, str, tuple[float, float], list[tuple[float, float]]]
+                str, Union[float, str, list[float], list[tuple[float, float]]]
             ]
             boat_status = requests.get(
                 constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"], timeout=5
             ).json()
         except requests.RequestException:
             boat_status = {
-                "position": (36.983731367697374, -76.29555376681454),
+                "position": [36.983731367697374, -76.29555376681454],
                 "state": "N/A",
                 "full_autonomy_maneuver": "N/A",
                 "speed": 0.0,
@@ -50,16 +50,16 @@ class TelemetryUpdater(QThread):
                 "rudder_angle": 0.0,
                 "current_waypoint_index": 0,
                 "current_route": [(0.0, 0.0)],
-                "vesc_data_rpm": 0,
-                "vesc_data_duty_cycle": 0,
-                "vesc_data_amp_hours": 0,
-                "vesc_data_amp_hours_charged": 0,
-                "vesc_data_current_to_vesc": 0,
-                "vesc_data_voltage_to_motor": 0,
-                "vesc_data_voltage_to_vesc": 0,
-                "vesc_data_wattage_to_motor": 0,
-                "vesc_data_time_since_vesc_startup_in_ms": 0,
-                "vesc_data_motor_temperature": 0,
+                "vesc_data_rpm": 0.0,
+                "vesc_data_duty_cycle": 0.0,
+                "vesc_data_amp_hours": 0.0,
+                "vesc_data_amp_hours_charged": 0.0,
+                "vesc_data_current_to_vesc": 0.0,
+                "vesc_data_voltage_to_motor": 0.0,
+                "vesc_data_voltage_to_vesc": 0.0,
+                "vesc_data_wattage_to_motor": 0.0,
+                "vesc_data_time_since_vesc_startup_in_ms": 0.0,
+                "vesc_data_motor_temperature": 0.0,
             }
             print("Failed to fetch boat data. Using default values.")
         self.boat_data_fetched.emit(boat_status)
