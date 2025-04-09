@@ -670,7 +670,7 @@ class MainWindow(QWidget):
             """
 
             if float(data_item) < 0:
-                return str(-float(data_item))
+                return f"{-float(data_item):.5f}"
             else:
                 return data_item
 
@@ -707,17 +707,17 @@ Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
 Current Route: {boat_data.get("current_route", "N/A")}
 
 VESC Data:
-RPM: {fix_formatting(boat_data.get("vesc_data_rpm", "N/A")):.5f}
-Duty Cycle: {fix_formatting(boat_data.get("vesc_data_duty_cycle", "N/A")):.5f}%
+RPM: {fix_formatting(boat_data.get("vesc_data_rpm", "N/A"))}
+Duty Cycle: {fix_formatting(boat_data.get("vesc_data_duty_cycle", "N/A"))}%
 Amp Hours: {boat_data.get("vesc_data_amp_hours", "N/A"):.5f} Ah
 Current to VESC: {boat_data.get("vesc_data_current_to_vesc", "N/A"):.5f} A
 Voltage to VESC: {boat_data.get("vesc_data_voltage_to_vesc", "N/A"):.5f} V
-Wattage to Motor: {fix_formatting(boat_data.get("vesc_data_wattage_to_motor", "N/A")):.5f} W
+Wattage to Motor: {fix_formatting(boat_data.get("vesc_data_wattage_to_motor", "N/A"))} W
 Voltage to Motor: {boat_data.get("vesc_data_voltage_to_motor", "N/A"):.5f} V
 Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since_vesc_startup_in_ms", "N/A")):.5f} seconds 
-Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature", "N/A")):.5f}°C
+Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature", "N/A"))}°C
 """
-        if isinstance(boat_data.get("position"), tuple):
+        if isinstance(boat_data.get("position"), list):
             js_code = f"map.update_boat_location({boat_data.get('position')[0]}, {boat_data.get('position')[1]})"
             self.browser.page().runJavaScript(js_code)
         self.left_tab1_text_section.setText(telemetry_text)
