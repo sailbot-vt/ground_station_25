@@ -15,7 +15,8 @@ from pathlib import Path
 from typing import Union
 
 from PyQt5.QtCore import Qt, QTimer
-from PyQt5.QtGui import QImage
+
+# from PyQt5.QtGui import QImage
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
     QApplication,
@@ -294,14 +295,14 @@ class MainWindow(QWidget):
 
         self.telemetry_handler = thread_classes.TelemetryUpdater()
         self.js_waypoint_handler = thread_classes.JSWaypointFetcher()
-        self.image_handler = thread_classes.ImageFetcher()
+        # self.image_handler = thread_classes.ImageFetcher()
 
         # Connect signals to update UI
         self.telemetry_handler.boat_data_fetched.connect(self.update_telemetry_display)
         self.js_waypoint_handler.waypoints_fetched.connect(
             self.update_waypoints_display
         )
-        self.image_handler.image_fetched.connect(self.update_image_display)
+        # self.image_handler.image_fetched.connect(self.update_image_display)
 
         # Slow timer
         self.slow_timer = QTimer(self)

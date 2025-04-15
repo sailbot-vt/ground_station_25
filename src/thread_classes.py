@@ -99,39 +99,39 @@ class JSWaypointFetcher(QThread):
         self.get_waypoints()
 
 
-class ImageFetcher(QThread):
-    """
-    Thread to fetch images from the telemetry server.
+# class ImageFetcher(QThread):
+#     """
+#     Thread to fetch images from the telemetry server.
 
-    Inherits
-    -------
-    `QThread`
+#     Inherits
+#     -------
+#     `QThread`
 
-    Attributes
-    ----------
-    image_fetched : `pyqtSignal`
-        Signal to send image to the main thread. Emits a numpy array containing the image.
-    """
+#     Attributes
+#     ----------
+#     image_fetched : `pyqtSignal`
+#         Signal to send image to the main thread. Emits a numpy array containing the image.
+#     """
 
-    image_fetched = pyqtSignal(np.ndarray)
+#     image_fetched = pyqtSignal(np.ndarray)
 
-    def __init__(self) -> None:
-        super().__init__()
+#     def __init__(self) -> None:
+#         super().__init__()
 
-    def get_image(self) -> None:
-        try:
-            base64_encoded_image = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
-                timeout=5,
-            ).json()["current_camera_image"]
-            jpg_original = base64.b64decode(base64_encoded_image)
-            jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
-            img = cv2.imdecode(jpg_as_np, flags=1)
-            self.image_fetched.emit(img)
-        except Exception as e:
-            print(f"Failed to fetch image: {e}")
-            image = np.zeros((480, 640, 3), dtype=np.uint8)
-            self.image_fetched.emit(image)
+#     def get_image(self) -> None:
+#         try:
+#             base64_encoded_image = requests.get(
+#                 constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
+#                 timeout=5,
+#             ).json()["current_camera_image"]
+#             jpg_original = base64.b64decode(base64_encoded_image)
+#             jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
+#             img = cv2.imdecode(jpg_as_np, flags=1)
+#             self.image_fetched.emit(img)
+#         except Exception as e:
+#             print(f"Failed to fetch image: {e}")
+#             image = np.zeros((480, 640, 3), dtype=np.uint8)
+#             self.image_fetched.emit(image)
 
-    def run(self) -> None:
-        self.get_image()
+#     def run(self) -> None:
+#         self.get_image()
