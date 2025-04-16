@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html>
 
-<head>
-    <title>Sailboat Tracker</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
-    <script src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
-    <style>
+    <head>
+        <title>Sailboat Tracker</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+        <script
+            src="https://rawgit.com/bbecquet/Leaflet.RotatedMarker/master/leaflet.rotatedMarker.js"></script>
+        <link rel="stylesheet"
+            href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
+        <style>
         #map {
             position: absolute;
             top: 0;
@@ -17,12 +19,12 @@
             right: 0;
         }
     </style>
-</head>
+    </head>
 
-<body>
+    <body>
 
-    <div id="map"></div>
-    <script>
+        <div id="map"></div>
+        <script>
         class map_interface {
             static map_options = {
                 center: [36.983731367697374, -76.29555376681454],
@@ -45,7 +47,7 @@
                     heading: 0,
                     location: [36.983731367697374, -76.29555376681454]
                 };
-                this.min_zoom = 13;
+                this.min_zoom = 5;
                 this.max_zoom = 20;
                 this.map = L.map("map", map_interface.map_options);
 
@@ -129,18 +131,31 @@
                 this.sync_waypoints();
             }
 
+            clear_waypoints() {
+                this.waypoints = [];
+                this.map.eachLayer(layer => {
+                    if (layer instanceof L.Marker && !layer._icon.src.includes("boat.png")) {
+                        this.map.removeLayer(layer);
+                    }
+                });
+                this.sync_waypoints();
+            }
+
             update_boat_location(lat, lon) {
                 this.boat.location = [lat, lon];
                 this.boat_marker.setLatLng(this.boat.location);
-                this.map.setView(this.boat.location, 15);
+            }
+
+            focus_map_on_boat() {
+                this.map.setView(this.boat.location, this.map.getZoom());
             }
 
             focus_map_on_waypoint(lat, lon) {
-                this.map.setView([lat, lon], 15);
+                this.map.setView([lat, lon], this.map.getZoom());
             }
         }
         map = new map_interface();
     </script>
-</body>
+    </body>
 
 </html>

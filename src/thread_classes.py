@@ -1,4 +1,3 @@
-import base64
 import requests
 import numpy as np
 import cv2

@@ -71,6 +71,9 @@ class MainWindow(QWidget):
             QStyle.StandardPixmap.SP_ArrowRight
         )
         self.left_arrow = self.style().standardIcon(QStyle.StandardPixmap.SP_ArrowLeft)
+        self.clear_icon = self.style().standardIcon(
+            QStyle.StandardPixmap.SP_DialogCancelButton
+        )
 
         # region define layouts
         self.main_layout = QGridLayout()
@@ -79,7 +82,7 @@ class MainWindow(QWidget):
         self.left_layout.setObjectName("left_layout")
         self.middle_layout = QGridLayout()
         self.middle_layout.setObjectName("middle_layout")
-        self.right_layout = QVBoxLayout()
+        self.right_layout = QGridLayout()
         self.right_layout.setObjectName("right_layout")
         self.left_tab1_layout = QVBoxLayout()
         self.left_tab2_layout = QVBoxLayout()
@@ -276,15 +279,31 @@ class MainWindow(QWidget):
 
         self.send_waypoints_button = QPushButton("Send Waypoints")
         self.send_waypoints_button.setIcon(self.up_arrow)
-        self.send_waypoints_button.setMinimumWidth(self.right_width)
+        self.send_waypoints_button.setMaximumWidth(self.right_width // 2)
         self.send_waypoints_button.setMinimumHeight(50)
         self.send_waypoints_button.clicked.connect(self.send_waypoints)
         self.send_waypoints_button.setDisabled(True)
         self.can_send_waypoints = False
 
-        self.right_layout.addWidget(self.right_label)
-        self.right_layout.addWidget(self.right_table)
-        self.right_layout.addWidget(self.send_waypoints_button)
+        self.clear_waypoints_button = QPushButton("Clear Waypoints")
+        self.clear_waypoints_button.setIcon(self.clear_icon)
+        self.clear_waypoints_button.setMaximumWidth(self.right_width // 2)
+        self.clear_waypoints_button.setMinimumHeight(50)
+        self.clear_waypoints_button.clicked.connect(self.clear_waypoints)
+        self.clear_waypoints_button.setDisabled(True)
+        self.can_reset_waypoints = False
+
+        self.focus_boat_button = QPushButton("Zoom to Boat")
+        self.focus_boat_button.setMinimumWidth(self.right_width)
+        self.focus_boat_button.setMinimumHeight(50)
+        self.focus_boat_button.clicked.connect(self.zoom_to_boat)
+        self.focus_boat_button.setDisabled(False)
+
+        self.right_layout.addWidget(self.right_label, 0, 0, 1, 2)
+        self.right_layout.addWidget(self.right_table, 1, 0, 1, 2)
+        self.right_layout.addWidget(self.send_waypoints_button, 2, 0)
+        self.right_layout.addWidget(self.clear_waypoints_button, 2, 1)
+        self.right_layout.addWidget(self.focus_boat_button, 3, 0, 1, 2)
         self.main_layout.addLayout(self.right_layout, 0, 2)
         # endregion right section
 
@@ -585,6 +604,26 @@ class MainWindow(QWidget):
         except Exception as e:
             print(f"Error: {e}")
 
+    def clear_waypoints(self) -> None:
+        """Clear waypoints from the table."""
+
+        self.can_reset_waypoints = False
+        js_code = "map.clear_waypoints()"
+        self.browser.page().runJavaScript(js_code)
+
+    def zoom_to_boat(self) -> None:
+        """
+        Zoom in on the boat's location on the map.
+
+        This function is called when the "Zoom to Boat" button is clicked.
+        """
+
+        if isinstance(self.boat_data.get("position"), list):
+            js_code = "map.focus_map_on_boat()"
+            self.browser.page().runJavaScript(js_code)
+        else:
+            print("Boat position not available.")
+
     # endregion button functions
 
     # region pyqt thread functions
@@ -618,8 +657,10 @@ class MainWindow(QWidget):
 
         self.waypoints = waypoints
         self.send_waypoints_button.setDisabled(not self.can_send_waypoints)
+        self.clear_waypoints_button.setDisabled(not self.can_reset_waypoints)
         if len(waypoints) != self.num_waypoints:
             self.can_send_waypoints = True
+            self.can_reset_waypoints = True
             self.num_waypoints = len(waypoints)
 
             self.right_table.clear()
