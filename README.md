@@ -4,7 +4,7 @@ Ground Station 25 is a robust and scalable system designed to monitor and intera
 
 ## Features
 
-- **Real-Time Telemetry**: View and monitor sailboat telemetry (location, speed, heading) in real time.
+- **Real-Time Telemetry**: View and monitor sailboat telemetry (location, speed, heading) in **real time**.
 - **Interactive Map**: Display live sailboat position and interact with the map (set waypoints, view boat orientation).
 - **Web-Based Interface**: Built using Node.js and Express to serve a web-based dashboard for tracking and interacting with the sailboat.
 - **Python Integration**: Python is used for backend data processing and communication with external APIs.
@@ -50,6 +50,6 @@ Ensure that you have the following software installed on your system:
 
 Left click on the map to add waypoints. Right clicking removes the closest waypoint to your cursor's location.
 
-### Demo
+### Demo (might be out of date with current iteration)
 
 <https://github.com/user-attachments/assets/4d5181cc-672a-436c-bc56-e994ac10a0eb>
