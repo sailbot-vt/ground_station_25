@@ -1,7 +1,7 @@
 *
-!app_data/assets/
+!app_data/assets/**
 !app_data/boat_data_bounds/default.json
-!src
+!src/**
 !.gitignore
 !package.json
 !package-lock.json
