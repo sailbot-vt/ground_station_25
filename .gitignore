@@ -4,4 +4,5 @@
 node_modules
 autopilot_params
 boat_data
+boat_data_bounds
 src/__pycache__

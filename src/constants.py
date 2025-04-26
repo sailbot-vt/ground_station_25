@@ -35,6 +35,7 @@ try:
 
     AUTO_PILOT_PARAMS_DIR = PurePath(TOP_LEVEL_DIR / "autopilot_params")
     BOAT_DATA_DIR = PurePath(TOP_LEVEL_DIR / "boat_data")
+    BOAT_DATA_LIMITS_DIR = PurePath(TOP_LEVEL_DIR / "boat_data_bounds")
     ASSETS_DIR = PurePath(TOP_LEVEL_DIR / "assets")
 
 except Exception as e:

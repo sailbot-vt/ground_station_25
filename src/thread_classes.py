@@ -28,7 +28,7 @@ class TelemetryUpdater(QThread):
     def get_boat_data(self) -> None:
         try:
             boat_status: dict[
-                str, Union[float, str, list[float], list[tuple[float, float]]]
+                str, Union[str, float, list[float], list[tuple[float, float]]]
             ]
             boat_status = requests.get(
                 constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"], timeout=5
