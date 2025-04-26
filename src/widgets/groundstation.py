@@ -33,6 +33,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
     QWidget,
+    QFileDialog,
 )
 # endregion imports
 
@@ -575,10 +576,17 @@ class GroundStationWidget(QWidget):
                 print("No parameter files found.")
 
             else:
-                latest_param_file = PurePath(
-                    constants.AUTO_PILOT_PARAMS_DIR / max(param_files)
+                chosen_file = QFileDialog.getOpenFileName(
+                    self,
+                    "Select Parameter File",
+                    constants.AUTO_PILOT_PARAMS_DIR.as_posix(),
+                    "*.json",
                 )
-                with open(latest_param_file, "r") as f:
+                if chosen_file == ("", ""):
+                    chosen_file = [
+                        PurePath(constants.AUTO_PILOT_PARAMS_DIR / max(param_files))
+                    ]
+                with open(chosen_file[0], "r") as f:
                     self.autopilot_parameters = json.load(f)
                     self.forced_jibe_checkbox.setChecked(
                         self.autopilot_parameters["perform_forced_jibe_instead_of_tack"]
@@ -691,15 +699,18 @@ class GroundStationWidget(QWidget):
         """
 
         try:
-            param_files = os.listdir(constants.BOAT_DATA_LIMITS_DIR)
-            if not param_files:
-                print("No parameter files found.")
-            else:
-                latest_param_file = PurePath(
-                    constants.BOAT_DATA_LIMITS_DIR / max(param_files)
-                )
-                with open(latest_param_file, "r") as f:
-                    self.telemetry_data_limits = json.load(f)
+            chosen_file = QFileDialog.getOpenFileName(
+                self,
+                "Select Parameter File",
+                constants.BOAT_DATA_LIMITS_DIR.as_posix(),
+                "*.json",
+            )
+            if chosen_file == ("", ""):
+                chosen_file = [
+                    PurePath(constants.BOAT_DATA_LIMITS_DIR / "default.json")
+                ]
+            with open(chosen_file[0], "r") as f:
+                self.telemetry_data_limits = json.load(f)
         except FileNotFoundError as e:
             print(e)
 
