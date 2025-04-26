@@ -26,6 +26,8 @@ class TelemetryUpdater(QThread):
         super().__init__()
 
     def get_boat_data(self) -> None:
+        """Fetch boat data from the telemetry server and emit it."""
+
         try:
             boat_status: dict[
                 str, Union[str, float, list[float], list[tuple[float, float]]]
@@ -88,6 +90,8 @@ class JSWaypointFetcher(QThread):
         super().__init__()
 
     def get_waypoints(self) -> None:
+        """Fetch waypoints from the local server and emit them."""
+
         try:
             waypoints = requests.get(constants.WAYPOINTS_SERVER_URL).json()
         except requests.RequestException:

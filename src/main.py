@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
-from widgets.main import GroundStationWidget
+from widgets.groundstation import GroundStationWidget
 
 
 class MainWindow(QMainWindow):

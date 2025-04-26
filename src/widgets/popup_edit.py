@@ -46,9 +46,13 @@ class TextEditWindow(QWidget):
         self.setLayout(layout)
 
     def save(self):
+        """Copy the current text from the text edit area to the `self.current_text` attribute."""
+
         entered_text = self.text_edit.toPlainText()
         self.current_text = entered_text
 
     def closeEvent(self, event):
+        """Emit the entered text when the window is closed."""
+
         self.user_text_emitter.emit(self.current_text)
         event.accept()

@@ -23,20 +23,29 @@ try:
     TOP_LEVEL_DIR = PurePath(os.getcwd())
 
     SRC_DIR = PurePath(TOP_LEVEL_DIR / "src")
+    DATA_DIR = PurePath(TOP_LEVEL_DIR / "app_data")
 
     HTML_MAP_PATH = PurePath(SRC_DIR / "map.html")
     HTML_MAP = open(HTML_MAP_PATH).read()
 
-    if "autopilot_params" not in os.listdir(TOP_LEVEL_DIR):
-        os.makedirs(TOP_LEVEL_DIR / "autopilot_params")
+    if "autopilot_params" not in os.listdir(DATA_DIR):
+        os.makedirs(DATA_DIR / "autopilot_params")
 
-    if "boat_data" not in os.listdir(TOP_LEVEL_DIR):
-        os.makedirs(TOP_LEVEL_DIR / "boat_data")
+    if "boat_data" not in os.listdir(DATA_DIR):
+        os.makedirs(DATA_DIR / "boat_data")
 
-    AUTO_PILOT_PARAMS_DIR = PurePath(TOP_LEVEL_DIR / "autopilot_params")
-    BOAT_DATA_DIR = PurePath(TOP_LEVEL_DIR / "boat_data")
-    BOAT_DATA_LIMITS_DIR = PurePath(TOP_LEVEL_DIR / "boat_data_bounds")
-    ASSETS_DIR = PurePath(TOP_LEVEL_DIR / "assets")
+    if "boat_data_bounds" not in os.listdir(DATA_DIR):
+        os.makedirs(DATA_DIR / "boat_data")
+
+    if "assets" not in os.listdir(DATA_DIR):
+        raise Exception(
+            "Assets directory not found, please redownload the directory from GitHub."
+        )
+
+    ASSETS_DIR = PurePath(DATA_DIR / "assets")
+    AUTO_PILOT_PARAMS_DIR = PurePath(DATA_DIR / "autopilot_params")
+    BOAT_DATA_DIR = PurePath(DATA_DIR / "boat_data")
+    BOAT_DATA_LIMITS_DIR = PurePath(DATA_DIR / "boat_data_bounds")
 
 except Exception as e:
     print(f"Error: {e}")
