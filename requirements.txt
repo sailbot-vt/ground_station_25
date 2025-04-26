@@ -2,15 +2,10 @@ certifi
 charset-normalizer
 idna
 numpy
-pandas
+packaging
 PyQt5
-PyQt5-Qt5
-PyQt5_sip
 PyQtWebEngine
-PyQtWebEngine-Qt5
 python-dateutil
-pytz
+QtAwesome
 requests
-six
-tzdata
 urllib3

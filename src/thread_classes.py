@@ -1,9 +1,9 @@
 import requests
-import numpy as np
-import cv2
 import constants
 from typing import Union
 from PyQt5.QtCore import QThread, pyqtSignal
+# import numpy as np
+# import cv2
 
 
 class TelemetryUpdater(QThread):
