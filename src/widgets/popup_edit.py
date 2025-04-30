@@ -38,7 +38,7 @@ class TextEditWindow(QWidget):
         self.text_edit.setPlainText(self.init_text)
 
         self.current_text = initial_text
-        self.save_button = QPushButton("Save")
+        self.save_button = QPushButton("Save (not to file)")
         self.save_button.clicked.connect(self.save)
 
         layout.addWidget(self.text_edit)

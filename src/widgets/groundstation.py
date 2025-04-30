@@ -106,7 +106,7 @@ class GroundStationWidget(QWidget):
 
         self.left_tab1_button_groupbox = QGroupBox()
         self.left_tab1_button_layout = QGridLayout()
-        self.save_boat_data_button = QPushButton("Save Boat Data")
+        self.save_boat_data_button = QPushButton("Save Boat Data to File")
         self.save_boat_data_button.setIcon(self.save_icon)
         self.save_boat_data_button.setMaximumWidth(self.left_width)
         self.save_boat_data_button.setMinimumHeight(50)
@@ -120,13 +120,13 @@ class GroundStationWidget(QWidget):
         self.edit_boat_data_limits_button.clicked.connect(self.edit_boat_data_limits)
 
         self.side_buttons_layout = QVBoxLayout()
-        self.load_boat_data_limits_button = QPushButton("Load Limits")
+        self.load_boat_data_limits_button = QPushButton("Load Limits from File")
         self.load_boat_data_limits_button.setIcon(self.hard_drive_icon)
         self.load_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
         self.load_boat_data_limits_button.setMinimumHeight(25)
         self.load_boat_data_limits_button.clicked.connect(self.load_boat_data_limits)
 
-        self.save_boat_data_limits_button = QPushButton("Save Limits")
+        self.save_boat_data_limits_button = QPushButton("Save Limits to File")
         self.save_boat_data_limits_button.setIcon(self.save_icon)
         self.save_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
         self.save_boat_data_limits_button.setMinimumHeight(25)
