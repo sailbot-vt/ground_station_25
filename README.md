@@ -9,7 +9,7 @@ Ground Station 25 is a robust and scalable system designed to monitor and intera
 Ensure that you have the following software installed on your system:
 
 - [Go](https://go.dev/doc/install) (1.24.3)
-- [Python](https://www.python.org/) (v3.x or later)
+- [Python](https://www.python.org/downloads/) (v3.x or later)
 
 ### Installation
 
