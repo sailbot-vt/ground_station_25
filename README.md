@@ -2,20 +2,13 @@
 
 Ground Station 25 is a robust and scalable system designed to monitor and interact with real-time sailboat telemetry. It integrates both web-based and command-line interfaces to visualize and control sailboat data, providing seamless communication with the sailboat and wind data sources.
 
-## Features
-
-- **Real-Time Telemetry**: View and monitor sailboat telemetry (location, speed, heading) in **real time**.
-- **Interactive Map**: Display live sailboat position and interact with the map (set waypoints, view boat orientation).
-- **Web-Based Interface**: Built using Node.js and Express to serve a web-based dashboard for tracking and interacting with the sailboat.
-- **Python Integration**: Python is used for backend data processing and communication with external APIs.
-
 ## Getting Started
 
 ### Prerequisites
 
 Ensure that you have the following software installed on your system:
 
-- [Node.js](https://nodejs.org/en/) (v14 or later)
+- [Go](https://go.dev/doc/install) (1.24.3)
 - [Python](https://www.python.org/) (v3.x or later)
 
 ### Installation
@@ -27,11 +20,10 @@ Ensure that you have the following software installed on your system:
    cd ground_station_25
    ```
 
-2. Install the Python and NPM dependencies:
+2. Install the Python dependencies:
 
    ```bash
    pip install -r requirements.txt
-   npm install
    ```
 
 3. Give the start script executable permissions:
