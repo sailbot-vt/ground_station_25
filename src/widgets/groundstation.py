@@ -372,7 +372,7 @@ class GroundStationWidget(QWidget):
         # self.fast_timer.timeout.connect(self.update_image_starter)
 
         # Start timers
-        self.fast_timer.start(50)  # milliseconds
+        self.fast_timer.start(100)  # milliseconds
         self.slow_timer.start(500)  # milliseconds
 
     # region button functions
