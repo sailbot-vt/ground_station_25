@@ -20,6 +20,7 @@ if [ ! -f "bin/server" ]; then
     fi
     # Build the Go server
     echo "Building Go server..."
+    go mod tidy
     go build -o bin src/web_engine/server.go
     if [ $? -ne 0 ]; then
         echo "Failed to build Go server. Please check the Go code for errors."
