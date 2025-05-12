@@ -1,6 +1,10 @@
 import os
 import sys
 from pathlib import PurePath
+from PyQt5.QtCore import QRect
+
+# Window dimensions
+WINDOW_BOX = QRect(100, 100, 800, 600)
 
 # base url for telemetry server
 TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
@@ -25,7 +29,8 @@ try:
     SRC_DIR = PurePath(TOP_LEVEL_DIR / "src")
     DATA_DIR = PurePath(TOP_LEVEL_DIR / "app_data")
 
-    HTML_MAP_PATH = PurePath(SRC_DIR / "map.html")
+    WEB_ENGINE_DIR = PurePath(SRC_DIR / "web_engine")
+    HTML_MAP_PATH = PurePath(WEB_ENGINE_DIR / "map.html")
     HTML_MAP = open(HTML_MAP_PATH).read()
 
     if "autopilot_params" not in os.listdir(DATA_DIR):

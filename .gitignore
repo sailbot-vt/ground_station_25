@@ -1,10 +1,5 @@
-*
-!app_data/assets/**
-!app_data/boat_data_bounds/default.json
-!src/**
-!.gitignore
-!package.json
-!package-lock.json
-!README.md
-!requirements.txt
-!run.sh
+**/__pycache__/
+.pytest_cache
+.python-version
+.DS_Store
+bin

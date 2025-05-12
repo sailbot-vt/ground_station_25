@@ -2,6 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 from widgets.groundstation import GroundStationWidget
+import constants
 
 
 class MainWindow(QMainWindow):
@@ -13,10 +14,10 @@ class MainWindow(QMainWindow):
     `QMainWindow`
     """
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("SailBussy Ground Station")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(constants.WINDOW_BOX)
         self.main_widget = GroundStationWidget()
         self.setCentralWidget(self.main_widget)
 

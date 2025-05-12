@@ -69,7 +69,7 @@ class TelemetryUpdater(QThread):
         self.get_boat_data()
 
 
-class JSWaypointFetcher(QThread):
+class WaypointFetcher(QThread):
     """
     Thread to fetch waypoints from the local server.
 
@@ -96,6 +96,7 @@ class JSWaypointFetcher(QThread):
             waypoints = requests.get(constants.WAYPOINTS_SERVER_URL).json()
         except requests.RequestException:
             waypoints = []
+            print("Failed to fetch waypoints. Using empty list.")
         self.waypoints_fetched.emit(waypoints)
 
     def run(self) -> None:

@@ -64,8 +64,6 @@ class GroundStationWidget(QWidget):
         self.num_waypoints = 0
         self.autopilot_parameters = {}
         self.telemetry_data_limits = {}
-        self.setWindowTitle("SailBussy Ground Station")
-        self.setGeometry(100, 100, 800, 600)
 
         # region define icons
         self.upload_icon = qta.icon("mdi.upload")
@@ -354,7 +352,7 @@ class GroundStationWidget(QWidget):
         self.get_autopilot_parameters()
 
         self.telemetry_handler = thread_classes.TelemetryUpdater()
-        self.js_waypoint_handler = thread_classes.JSWaypointFetcher()
+        self.js_waypoint_handler = thread_classes.WaypointFetcher()
         # self.image_handler = thread_classes.ImageFetcher()
 
         # Connect signals to update UI
@@ -374,7 +372,7 @@ class GroundStationWidget(QWidget):
         # self.fast_timer.timeout.connect(self.update_image_starter)
 
         # Start timers
-        self.fast_timer.start(100)  # milliseconds
+        self.fast_timer.start(50)  # milliseconds
         self.slow_timer.start(500)  # milliseconds
 
     # region button functions
