@@ -1,6 +1,6 @@
 # Ground Station 25 <img src="https://github.com/user-attachments/assets/05a3d1d7-f5c2-4c9b-8a05-54f5ed727f80" alt="logo" width="50"/>
 
-Ground Station 25 is a robust and scalable system designed to monitor and interact with real-time sailboat telemetry. It integrates both web-based and command-line interfaces to visualize and control sailboat data, providing seamless communication with the sailboat and wind data sources.
+This tool offers an intuitive interface that allows users to monitor telemetry data and set route waypoints while the boat is in operation.
 
 ## Getting Started
 
@@ -8,8 +8,8 @@ Ground Station 25 is a robust and scalable system designed to monitor and intera
 
 Ensure that you have the following software installed on your system:
 
-- [Go](https://go.dev/doc/install) (1.24.3)
-- [Python](https://www.python.org/downloads/) (v3.x or later)
+- [Go 1.23.4](https://go.dev/doc/install)
+- [Python 3.13](https://www.python.org/downloads/)
 
 ### Installation
 
@@ -40,7 +40,8 @@ Ensure that you have the following software installed on your system:
 
 ### Usage
 
-Left click on the map to add waypoints. Right clicking removes the closest waypoint to your cursor's location.
+- Left click on the map to add waypoints.
+- Right click to remove the waypoint closest to your mouse's cursor position.
 
 ### Demo (might be out of date with current iteration)
 
