@@ -45,4 +45,4 @@ Ensure that you have the following software installed on your system:
 
 ### Demo (might be out of date with current iteration)
 
-<https://github.com/user-attachments/assets/4d5181cc-672a-436c-bc56-e994ac10a0eb>
+<https://github.com/user-attachments/assets/0e8c9dad-c92d-4989-af2e-5723d65a7d51>
