@@ -7,6 +7,7 @@ import json
 import numpy as np
 
 import constants
+from icons import get_icons
 import thread_classes
 from widgets.popup_edit import TextEditWindow
 
@@ -17,7 +18,6 @@ from typing import Union
 from PyQt5.QtCore import Qt, QTimer
 
 # from PyQt5.QtGui import QImage
-import qtawesome as qta
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
     QCheckBox,
@@ -65,18 +65,7 @@ class GroundStationWidget(QWidget):
         }
         self.autopilot_parameters = {}
         self.telemetry_data_limits = {}
-
-        # region define icons
-        self.upload_icon = qta.icon("mdi.upload")
-        self.download_icon = qta.icon("mdi.download")
-        self.delete_icon = qta.icon("mdi.trash-can")
-        self.save_icon = qta.icon("mdi.content-save")
-        self.edit_icon = qta.icon("mdi.cog")
-        self.refresh_icon = qta.icon("mdi.refresh")
-        self.hard_drive_icon = qta.icon("fa6.hard-drive")
-        self.boat_icon = qta.icon("mdi.sail-boat")
-        self.image_upload_icon = qta.icon("mdi.image-move")
-        # endregion define icons
+        self.icons = get_icons()
 
         # region define layouts
         self.main_layout = QGridLayout()
@@ -111,27 +100,27 @@ class GroundStationWidget(QWidget):
         self.left_tab1_text_section.setText("Awaiting telemetry data...")
 
         self.save_boat_data_button = QPushButton("Save Boat Data to File")
-        self.save_boat_data_button.setIcon(self.save_icon)
+        self.save_boat_data_button.setIcon(self.icons.save)
         self.save_boat_data_button.setMaximumWidth(self.left_width)
         self.save_boat_data_button.setMinimumHeight(50)
         self.save_boat_data_button.clicked.connect(self.save_boat_data)
         self.save_boat_data_button.setDisabled(False)
 
         self.edit_boat_data_limits_button = QPushButton("Edit Limits")
-        self.edit_boat_data_limits_button.setIcon(self.edit_icon)
+        self.edit_boat_data_limits_button.setIcon(self.icons.edit)
         self.edit_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
         self.edit_boat_data_limits_button.setMinimumHeight(50)
         self.edit_boat_data_limits_button.clicked.connect(self.edit_boat_data_limits)
 
         self.side_buttons_layout = QVBoxLayout()
         self.load_boat_data_limits_button = QPushButton("Load Limits from File")
-        self.load_boat_data_limits_button.setIcon(self.hard_drive_icon)
+        self.load_boat_data_limits_button.setIcon(self.icons.hard_drive)
         self.load_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
         self.load_boat_data_limits_button.setMinimumHeight(25)
         self.load_boat_data_limits_button.clicked.connect(self.load_boat_data_limits)
 
         self.save_boat_data_limits_button = QPushButton("Save Limits to File")
-        self.save_boat_data_limits_button.setIcon(self.save_icon)
+        self.save_boat_data_limits_button.setIcon(self.icons.save)
         self.save_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
         self.save_boat_data_limits_button.setMinimumHeight(25)
         self.save_boat_data_limits_button.clicked.connect(self.save_boat_data_limits)
@@ -157,19 +146,19 @@ class GroundStationWidget(QWidget):
         self.autopilot_param_control_layout = QVBoxLayout()
 
         self.left_tab2_reset_button = QPushButton("Reset Parameters")
-        self.left_tab2_reset_button.setIcon(self.refresh_icon)
+        self.left_tab2_reset_button.setIcon(self.icons.refresh)
         self.left_tab2_reset_button.clicked.connect(self.reset_parameters)
         self.left_tab2_send_button = QPushButton("Send Parameters")
-        self.left_tab2_send_button.setIcon(self.upload_icon)
+        self.left_tab2_send_button.setIcon(self.icons.upload)
         self.left_tab2_send_button.clicked.connect(self.send_parameters)
         self.left_tab2_save_button = QPushButton("Save Parameters to File")
-        self.left_tab2_save_button.setIcon(self.save_icon)
+        self.left_tab2_save_button.setIcon(self.icons.save)
         self.left_tab2_save_button.clicked.connect(self.save_parameters)
         self.left_tab2_load_button = QPushButton("Load Parameters from File")
-        self.left_tab2_load_button.setIcon(self.hard_drive_icon)
+        self.left_tab2_load_button.setIcon(self.icons.hard_drive)
         self.left_tab2_load_button.clicked.connect(self.load_parameters)
         self.left_tab2_send_image_button = QPushButton("Send Image")
-        self.left_tab2_send_image_button.setIcon(self.image_upload_icon)
+        self.left_tab2_send_image_button.setIcon(self.icons.image_upload)
         self.left_tab2_send_image_button.clicked.connect(self.send_image)
 
         self.left_tab2_reset_button.setDisabled(False)
@@ -328,7 +317,7 @@ class GroundStationWidget(QWidget):
         self.right_tab1_table.setMinimumWidth(self.right_width)
 
         self.send_waypoints_button = QPushButton("Send Waypoints")
-        self.send_waypoints_button.setIcon(self.upload_icon)
+        self.send_waypoints_button.setIcon(self.icons.upload)
         self.send_waypoints_button.setMaximumWidth(self.right_width // 2)
         self.send_waypoints_button.setMinimumHeight(50)
         self.send_waypoints_button.clicked.connect(self.send_waypoints)
@@ -336,7 +325,7 @@ class GroundStationWidget(QWidget):
         self.can_send_waypoints = False
 
         self.clear_waypoints_button = QPushButton("Clear Waypoints")
-        self.clear_waypoints_button.setIcon(self.delete_icon)
+        self.clear_waypoints_button.setIcon(self.icons.delete)
         self.clear_waypoints_button.setMaximumWidth(self.right_width // 2)
         self.clear_waypoints_button.setMinimumHeight(50)
         self.clear_waypoints_button.clicked.connect(self.clear_waypoints)
@@ -344,7 +333,7 @@ class GroundStationWidget(QWidget):
         self.can_reset_waypoints = False
 
         self.focus_boat_button = QPushButton("Zoom to Boat")
-        self.focus_boat_button.setIcon(self.boat_icon)
+        self.focus_boat_button.setIcon(self.icons.boat)
         self.focus_boat_button.setMinimumWidth(self.right_width)
         self.focus_boat_button.setMinimumHeight(50)
         self.focus_boat_button.clicked.connect(self.zoom_to_boat)
@@ -365,19 +354,19 @@ class GroundStationWidget(QWidget):
         self.right_tab2_table.setMinimumWidth(self.right_width)
 
         self.edit_buoy_data_button = QPushButton("Edit Buoy Data")
-        self.edit_buoy_data_button.setIcon(self.edit_icon)
+        self.edit_buoy_data_button.setIcon(self.icons.edit)
         self.edit_buoy_data_button.setMaximumWidth(self.right_width)
         self.edit_buoy_data_button.setMinimumHeight(50)
         self.edit_buoy_data_button.clicked.connect(self.edit_buoy_data)
 
         self.save_buoy_data_button = QPushButton("Save Buoy Data")
-        self.save_buoy_data_button.setIcon(self.save_icon)
+        self.save_buoy_data_button.setIcon(self.icons.save)
         self.save_buoy_data_button.setMaximumWidth(self.right_width // 2)
         self.save_buoy_data_button.setMinimumHeight(50)
         self.save_buoy_data_button.clicked.connect(self.save_buoy_data)
 
         self.load_buoy_data_button = QPushButton("Load Buoy Data")
-        self.load_buoy_data_button.setIcon(self.hard_drive_icon)
+        self.load_buoy_data_button.setIcon(self.icons.hard_drive)
         self.load_buoy_data_button.setMaximumWidth(self.right_width // 2)
         self.load_buoy_data_button.setMinimumHeight(50)
         self.load_buoy_data_button.clicked.connect(self.load_buoy_data)
@@ -1114,11 +1103,11 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
         button = QPushButton()
         button.setMaximumWidth(25)
         if action == "send":
-            button.setIcon(self.upload_icon)
+            button.setIcon(self.icons.upload)
             button.clicked.connect(partial(self.send_individual_parameter, param))
             return button
         elif action == "reset":
-            button.setIcon(self.delete_icon)
+            button.setIcon(self.icons.delete)
             button.clicked.connect(partial(self.reset_individual_parameter, param))
             return button
         else:
