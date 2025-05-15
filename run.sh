@@ -11,22 +11,32 @@ if [ ! -d "bin" ]; then
     echo "Created bin directory."
 fi
 
-# Check if the Go binary exists
-if [ ! -f "bin/server" ]; then
+if [ -f "last_build_time.txt" ]; then
+    last_build_time=$(cat last_build_time.txt)
+    # if last_build_time is older than 1 hour
+    if [ $(($(date +%s) - last_build_time)) -gt 3600 ]; then
+        echo "Server binary out of date. Rebuilding..."
+        # Check if Go is on the PATH
+        if ! command -v go &> /dev/null; then
+            echo "Go is not installed. Please install Go to run this script."
+            exit 1
+        fi
+        go build -o bin/server src/web_engine/server.go
+        echo "Go server built successfully."
+        date +%s > last_build_time.txt
+    else
+        echo "last_build_time.txt is less than 1 hour old. Skipping build."
+    fi
+else
+    echo "last_build_time.txt not found. Building the Go server..."
     # Check if Go is on the PATH
     if ! command -v go &> /dev/null; then
         echo "Go is not installed. Please install Go to run this script."
         exit 1
     fi
-    # Build the Go server
-    echo "Building Go server..."
-    go mod tidy
-    go build -o bin src/web_engine/server.go
-    if [ $? -ne 0 ]; then
-        echo "Failed to build Go server. Please check the Go code for errors."
-        exit 1
-    fi
+    go build -o bin/server src/web_engine/server.go
     echo "Go server built successfully."
+    date +%s > last_build_time.txt
 fi
 
 # Start the Go server in the background
