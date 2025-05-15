@@ -42,6 +42,9 @@ try:
     if "boat_data_bounds" not in os.listdir(DATA_DIR):
         os.makedirs(DATA_DIR / "boat_data")
 
+    if "buoy_data" not in os.listdir(DATA_DIR):
+        os.makedirs(DATA_DIR / "buoy_data")
+
     if "assets" not in os.listdir(DATA_DIR):
         raise Exception(
             "Assets directory not found, please redownload the directory from GitHub."
@@ -51,6 +54,7 @@ try:
     AUTO_PILOT_PARAMS_DIR = PurePath(DATA_DIR / "autopilot_params")
     BOAT_DATA_DIR = PurePath(DATA_DIR / "boat_data")
     BOAT_DATA_LIMITS_DIR = PurePath(DATA_DIR / "boat_data_bounds")
+    BUOY_DATA_DIR = PurePath(DATA_DIR / "buoy_data")
 
 except Exception as e:
     print(f"Error: {e}")

@@ -50,6 +50,8 @@ class GroundStationWidget(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.waypoints = []
+        self.num_waypoints = 0
+        self.buoys = {}
         self.boat_data = {}
         self.boat_data_averages = {
             "vesc_data_rpm": 0.0,
@@ -61,7 +63,6 @@ class GroundStationWidget(QWidget):
             "vesc_data_wattage_to_motor": 0.0,
             "vesc_data_motor_temperature": 0.0,
         }
-        self.num_waypoints = 0
         self.autopilot_parameters = {}
         self.telemetry_data_limits = {}
 
@@ -80,16 +81,23 @@ class GroundStationWidget(QWidget):
         # region define layouts
         self.main_layout = QGridLayout()
         self.main_layout.setObjectName("main_layout")
+
         self.left_layout = QTabWidget()
         self.left_layout.setObjectName("left_layout")
-        self.middle_layout = QGridLayout()
-        self.middle_layout.setObjectName("middle_layout")
-        self.right_layout = QGridLayout()
-        self.right_layout.setObjectName("right_layout")
         self.left_tab1_layout = QVBoxLayout()
         self.left_tab2_layout = QVBoxLayout()
         self.left_tab1 = QWidget()
         self.left_tab2 = QWidget()
+
+        self.middle_layout = QGridLayout()
+        self.middle_layout.setObjectName("middle_layout")
+
+        self.right_layout = QTabWidget()
+        self.right_layout.setObjectName("right_layout")
+        self.right_tab1_layout = QGridLayout()
+        self.right_tab2_layout = QGridLayout()
+        self.right_tab1 = QWidget()
+        self.right_tab2 = QWidget()
         # endregion define layouts
 
         # region setup UI
@@ -102,8 +110,6 @@ class GroundStationWidget(QWidget):
         self.left_tab1_text_section.setReadOnly(True)
         self.left_tab1_text_section.setText("Awaiting telemetry data...")
 
-        self.left_tab1_button_groupbox = QGroupBox()
-        self.left_tab1_button_layout = QGridLayout()
         self.save_boat_data_button = QPushButton("Save Boat Data to File")
         self.save_boat_data_button.setIcon(self.save_icon)
         self.save_boat_data_button.setMaximumWidth(self.left_width)
@@ -131,6 +137,9 @@ class GroundStationWidget(QWidget):
         self.save_boat_data_limits_button.clicked.connect(self.save_boat_data_limits)
         self.side_buttons_layout.addWidget(self.load_boat_data_limits_button)
         self.side_buttons_layout.addWidget(self.save_boat_data_limits_button)
+
+        self.left_tab1_button_groupbox = QGroupBox()
+        self.left_tab1_button_layout = QGridLayout()
 
         self.left_tab1_button_layout.addWidget(self.save_boat_data_button, 0, 0, 1, 2)
         self.left_tab1_button_layout.addWidget(self.edit_boat_data_limits_button, 1, 0)
@@ -289,6 +298,7 @@ class GroundStationWidget(QWidget):
         self.autopilot_param_input_groupbox.setLayout(self.autopilot_param_input_layout)
         self.left_tab2_layout.addWidget(self.autopilot_param_input_groupbox)
         # endregion bottom section
+        # endregion Parameter input
 
         self.left_tab1.setLayout(self.left_tab1_layout)
         self.left_tab2.setLayout(self.left_tab2_layout)
@@ -296,7 +306,7 @@ class GroundStationWidget(QWidget):
         self.left_layout.addTab(self.left_tab2, "Autopilot Control")
         self.left_layout.setMaximumWidth(self.left_width)
         self.main_layout.addWidget(self.left_layout, 0, 0)
-        # endregion Parameter input
+
         # endregion left section
 
         # region middle section
@@ -309,11 +319,13 @@ class GroundStationWidget(QWidget):
         # endregion middle section
 
         # region right section
-        self.right_width = 295
-        self.right_label = QLabel("Waypoints")
-        self.right_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.right_table = QTableWidget()
-        self.right_table.setMinimumWidth(self.right_width)
+        self.right_width = 300
+
+        # region tab1: waypoint data
+        self.right_tab1_label = QLabel("Waypoints")
+        self.right_tab1_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.right_tab1_table = QTableWidget()
+        self.right_tab1_table.setMinimumWidth(self.right_width)
 
         self.send_waypoints_button = QPushButton("Send Waypoints")
         self.send_waypoints_button.setIcon(self.upload_icon)
@@ -338,12 +350,49 @@ class GroundStationWidget(QWidget):
         self.focus_boat_button.clicked.connect(self.zoom_to_boat)
         self.focus_boat_button.setDisabled(False)
 
-        self.right_layout.addWidget(self.right_label, 0, 0, 1, 2)
-        self.right_layout.addWidget(self.right_table, 1, 0, 1, 2)
-        self.right_layout.addWidget(self.send_waypoints_button, 2, 0)
-        self.right_layout.addWidget(self.clear_waypoints_button, 2, 1)
-        self.right_layout.addWidget(self.focus_boat_button, 3, 0, 1, 2)
-        self.main_layout.addLayout(self.right_layout, 0, 2)
+        self.right_tab1_layout.addWidget(self.right_tab1_label, 0, 0, 1, 2)
+        self.right_tab1_layout.addWidget(self.right_tab1_table, 1, 0, 1, 2)
+        self.right_tab1_layout.addWidget(self.send_waypoints_button, 2, 0)
+        self.right_tab1_layout.addWidget(self.clear_waypoints_button, 2, 1)
+        self.right_tab1_layout.addWidget(self.focus_boat_button, 3, 0, 1, 2)
+        self.right_tab1.setLayout(self.right_tab1_layout)
+        # endregion tab1: waypoint data
+
+        # region tab2: buoy data
+        self.right_tab2_label = QLabel("Buoy Data")
+        self.right_tab2_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.right_tab2_table = QTableWidget()
+        self.right_tab2_table.setMinimumWidth(self.right_width)
+
+        self.edit_buoy_data_button = QPushButton("Edit Buoy Data")
+        self.edit_buoy_data_button.setIcon(self.edit_icon)
+        self.edit_buoy_data_button.setMaximumWidth(self.right_width)
+        self.edit_buoy_data_button.setMinimumHeight(50)
+        self.edit_buoy_data_button.clicked.connect(self.edit_buoy_data)
+
+        self.save_buoy_data_button = QPushButton("Save Buoy Data")
+        self.save_buoy_data_button.setIcon(self.save_icon)
+        self.save_buoy_data_button.setMaximumWidth(self.right_width // 2)
+        self.save_buoy_data_button.setMinimumHeight(50)
+        self.save_buoy_data_button.clicked.connect(self.save_buoy_data)
+
+        self.load_buoy_data_button = QPushButton("Load Buoy Data")
+        self.load_buoy_data_button.setIcon(self.hard_drive_icon)
+        self.load_buoy_data_button.setMaximumWidth(self.right_width // 2)
+        self.load_buoy_data_button.setMinimumHeight(50)
+        self.load_buoy_data_button.clicked.connect(self.load_buoy_data)
+
+        self.right_tab2_layout.addWidget(self.right_tab2_label, 0, 0, 1, 2)
+        self.right_tab2_layout.addWidget(self.right_tab2_table, 1, 0, 1, 2)
+        self.right_tab2_layout.addWidget(self.edit_buoy_data_button, 2, 0, 1, 2)
+        self.right_tab2_layout.addWidget(self.save_buoy_data_button, 3, 0)
+        self.right_tab2_layout.addWidget(self.load_buoy_data_button, 3, 1)
+        self.right_tab2.setLayout(self.right_tab2_layout)
+        # endregion tab2: buoy data
+        self.right_layout.addTab(self.right_tab1, "Waypoints")
+        self.right_layout.addTab(self.right_tab2, "Buoy Data")
+        self.right_layout.setMaximumWidth(self.right_width)
+        self.main_layout.addWidget(self.right_layout, 0, 2)
         # endregion right section
 
         self.setLayout(self.main_layout)
@@ -562,11 +611,7 @@ class GroundStationWidget(QWidget):
             print(f"Parameters: {self.autopilot_parameters}")
 
     def load_parameters(self) -> None:
-        """
-        Load parameters from the latest file in the `autopilot_params` directory.
-
-        If the directory does not exist, it will be created.
-        """
+        """Load parameters from the latest file in the `autopilot_params` directory."""
 
         try:
             param_files = os.listdir(constants.AUTO_PILOT_PARAMS_DIR)
@@ -652,10 +697,11 @@ class GroundStationWidget(QWidget):
 
     def edit_boat_data_limits(self) -> None:
         """
-        Edit and save upper and lower bounds for some of the telemetry data.
+        Opens a text edit window to edit the telemetry data limits.
 
-        Files are stored in the `boat_data_bounds` directory and are named `boat_data_bounds_<timestamp>.json`
-        where `<timestamp>` is nanoseconds since unix epoch.
+        `self.edit_boat_data_limits_callback` is called when the user closes or clicks the save button in the text edit window.
+        `self.edit_boat_data_limits_callback` recieves the text from the text edit window when the user clicks the save button,
+        otherwise it recieves the text without any changes.
         """
 
         try:
@@ -690,7 +736,7 @@ class GroundStationWidget(QWidget):
 
     def load_boat_data_limits(self) -> None:
         """
-        Load upper and lower bounds for some of the telemetry data.
+        Load upper and lower bounds for some of the telemetry data, if no file selected use `default.json`.
 
         Files are stored in the `boat_data_bounds` directory and are named `boat_data_bounds_<timestamp>.json`
         where `<timestamp>` is nanoseconds since unix epoch.
@@ -729,6 +775,116 @@ class GroundStationWidget(QWidget):
                 json.dump(self.telemetry_data_limits, f, indent=4)
         except Exception as e:
             print(f"Error: {e}")
+
+    def edit_buoy_data(self) -> None:
+        """
+        Opens a text edit window to edit the buoy data.
+
+        `self.edit_buoy_data_callback` is called when the user closes or clicks the save button in the text edit window.
+        `self.edit_buoy_data_callback` recieves the text from the text edit window when the user clicks the save button,
+        otherwise it recieves the text without any changes.
+        """
+
+        try:
+            buoy_json = json.dumps(self.buoys, indent=4)
+            self.text_edit_window = TextEditWindow(initial_text=buoy_json)
+            self.text_edit_window.setWindowTitle("Edit Buoy GPS Coordinates")
+            self.text_edit_window.user_text_emitter.connect(
+                self.edit_buoy_data_callback
+            )
+            self.text_edit_window.show()
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def edit_buoy_data_callback(self, text: str) -> None:
+        """
+        Callback function for the `edit_buoy_data` function.
+
+        This function is called when the user closes the text edit window.
+        It retrieves the edited text and saves it to the `self.buoys` variable and closes the window.
+
+        Parameters
+        ----------
+        text
+            The text entered by the user in the text edit window.
+        """
+
+        try:
+            edited_bouys = text
+            if self.buoys != json.loads(edited_bouys):
+                self.buoys = json.loads(edited_bouys)
+                self.update_buoy_table()
+
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def update_buoy_table(self) -> None:
+        self.right_tab2_table.clear()
+        self.right_tab2_table.setRowCount(0)
+        self.right_tab2_table.setColumnCount(2)
+        self.right_tab2_table.setHorizontalHeaderLabels(["Latitude", "Longitude"])
+
+        clear_js_buoys = "map.clear_buoys()"
+        self.browser.page().runJavaScript(clear_js_buoys)
+
+        for buoy in self.buoys:
+            self.right_tab2_table.insertRow(self.right_tab2_table.rowCount())
+            add_js_buoy = (
+                f"map.add_buoy({self.buoys[buoy]['lat']}, {self.buoys[buoy]['lon']})"
+            )
+            self.browser.page().runJavaScript(add_js_buoy)
+            for i, coord in enumerate(["lat", "lon"]):
+                item = QTableWidgetItem(f"{float(self.buoys[buoy][coord]):.13f}")
+                item.setFlags(Qt.ItemFlag.ItemIsEnabled)
+                self.right_tab2_table.setItem(
+                    self.right_tab2_table.rowCount() - 1, i, item
+                )
+        self.right_tab2_table.resizeColumnsToContents()
+        self.right_tab2_table.resizeRowsToContents()
+
+    def save_buoy_data(self) -> None:
+        """
+        Saves latest entry in the `self.buoys` array to a file.
+
+        Files are stored in the `buoy_data` directory and are named `buoy_data_<timestamp>.json`
+        where `<timestamp>` is nanoseconds since unix epoch.
+        """
+
+        try:
+            file_path = PurePath(
+                constants.BUOY_DATA_DIR / f"buoy_data_{time.time_ns()}.json"
+            )
+            with open(file_path, "w") as f:
+                json.dump(self.buoys, f, indent=4)
+        except Exception as e:
+            print(f"Error: {e}")
+
+    def load_buoy_data(self) -> None:
+        """
+        Load buoy data from the `buoy_data` directory, if none selected use `default.json`.
+
+        Files are stored in the `buoy_data` directory and are named `buoy_data_<timestamp>.json`
+        where `<timestamp>` is nanoseconds since unix epoch.
+        """
+
+        try:
+            buoy_files = os.listdir(constants.BUOY_DATA_DIR)
+            if not buoy_files:
+                print("No buoy data files found.")
+            else:
+                chosen_file = QFileDialog.getOpenFileName(
+                    self,
+                    "Select Buoy Data File",
+                    constants.BUOY_DATA_DIR.as_posix(),
+                    "*.json",
+                )
+                if chosen_file == ("", ""):
+                    chosen_file = [PurePath(constants.BUOY_DATA_DIR / "default.json")]
+                with open(chosen_file[0], "r") as f:
+                    self.buoys = json.load(f)
+                self.update_buoy_table()
+        except FileNotFoundError as e:
+            print(e)
 
     def clear_waypoints(self) -> None:
         """Clear waypoints from the table."""
@@ -789,19 +945,21 @@ class GroundStationWidget(QWidget):
             self.can_reset_waypoints = True
             self.num_waypoints = len(waypoints)
 
-            self.right_table.clear()
-            self.right_table.setRowCount(0)
-            self.right_table.setColumnCount(2)
-            self.right_table.setHorizontalHeaderLabels(["Latitude", "Longitude"])
+            self.right_tab1_table.clear()
+            self.right_tab1_table.setRowCount(0)
+            self.right_tab1_table.setColumnCount(2)
+            self.right_tab1_table.setHorizontalHeaderLabels(["Latitude", "Longitude"])
 
             for waypoint in waypoints:
-                self.right_table.insertRow(self.right_table.rowCount())
+                self.right_tab1_table.insertRow(self.right_tab1_table.rowCount())
                 for i, coord in enumerate(waypoint):
                     item = QTableWidgetItem(f"{coord:.13f}")
                     item.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                    self.right_table.setItem(self.right_table.rowCount() - 1, i, item)
-            self.right_table.resizeColumnsToContents()
-            self.right_table.resizeRowsToContents()
+                    self.right_tab1_table.setItem(
+                        self.right_tab1_table.rowCount() - 1, i, item
+                    )
+            self.right_tab1_table.resizeColumnsToContents()
+            self.right_tab1_table.resizeRowsToContents()
 
     def update_telemetry_display(
         self,

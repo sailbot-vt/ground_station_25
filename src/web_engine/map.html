@@ -30,10 +30,26 @@
                 center: [36.983731367697374, -76.29555376681454],
                 zoom: 13
             };
+            static buoy_color = "orange"
+            static waypoint_color = "blue"
             static boat_icon = L.icon({
-                iconUrl: "https://github.com/sailbot-vt/ground_station_25/blob/main/app_data/assets/boat.png?raw=true",
+                iconUrl: "https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/boat.png",
                 iconSize: [50, 50],
                 iconAnchor: [25, 25]
+            });
+            static buoy_icon = L.icon({
+                iconUrl: `https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/marker-icon-${map_interface.buoy_color}.png`,
+                shadowUrl: `https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/marker-shadow.png`,
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                shadowSize: [41, 41]
+            });
+            static waypoint_icon = L.icon({
+                iconUrl: `https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/marker-icon-${map_interface.waypoint_color}.png`,
+                shadowUrl: `https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/marker-shadow.png`,
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                shadowSize: [41, 41]
             });
 
             constructor() {
@@ -110,31 +126,51 @@
 
             add_waypoint(lat, lon) {
                 this.waypoints.push([lat, lon]);
-                L.marker([lat, lon]).addTo(this.map);
+                L.marker([lat, lon], {
+                    icon: map_interface.waypoint_icon
+                }).addTo(this.map);
                 this.sync_waypoints();
             }
 
             remove_waypoint(index) {
-                this.waypoints.splice(index, 1);
+                const removed = this.waypoints.splice(index, 1)[0];
                 this.map.eachLayer(layer => {
-                    if (layer instanceof L.Marker && !layer._icon.src.includes("boat.png")) {
+                    if (layer instanceof L.Marker && layer.getLatLng().equals(removed)) {
                         this.map.removeLayer(layer);
                     }
-                });
-                this.waypoints.forEach(waypoint => {
-                    L.marker(waypoint).addTo(this.map);
                 });
                 this.sync_waypoints();
             }
 
             clear_waypoints() {
+                for (let i = this.waypoints.length - 1; i >= 0; i--) {
+                    this.remove_waypoint(i);
+                }
                 this.waypoints = [];
+                this.sync_waypoints();
+            }
+
+            add_buoy(lat, lon) {
+                this.buoys.push([lat, lon]);
+                L.marker([lat, lon], {
+                    icon: map_interface.buoy_icon
+                }).addTo(this.map);
+            }
+
+            remove_buoy(index) {
+                const removed = this.buoys.splice(index, 1)[0];
                 this.map.eachLayer(layer => {
-                    if (layer instanceof L.Marker && !layer._icon.src.includes("boat.png")) {
+                    if (layer instanceof L.Marker && layer.getLatLng().equals(removed)) {
                         this.map.removeLayer(layer);
                     }
                 });
-                this.sync_waypoints();
+            }
+
+            clear_buoys() {
+                for (let i = this.buoys.length - 1; i >= 0; i--) {
+                    this.remove_buoy(i);
+                }
+                this.buoys = [];
             }
 
             update_boat_location(lat, lon) {
