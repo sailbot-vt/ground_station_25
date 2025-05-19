@@ -22,8 +22,13 @@ if [ -f "last_build_time.txt" ]; then
             exit 1
         fi
         go build -o bin/server src/web_engine/server.go
-        echo "Go server built successfully."
-        date +%s > last_build_time.txt
+        if [ $? -ne 0 ]; then
+            echo "Failed to build the Go server. Please check your Go installation."
+            exit 1
+        else
+            echo "Go server built successfully."
+            date +%s > last_build_time.txt
+        fi
     else
         echo "last_build_time.txt is less than 1 hour old. Skipping build."
     fi
