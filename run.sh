@@ -12,6 +12,7 @@ if [ -f "bin/server" ]; then
             echo "Go is not installed. Please install Go to run this script."
             exit 1
         fi
+        go mod tidy
         go build -o bin/server src/web_engine/server.go
         if [ $? -ne 0 ]; then
             echo "Failed to build the Go server. Please check your Go installation."
@@ -30,6 +31,7 @@ else
         echo "Go is not installed. Please install Go to run this script."
         exit 1
     fi
+    go mod tidy
     go build -o bin/server src/web_engine/server.go
     if [ $? -ne 0 ]; then
         echo "Failed to build the Go server. Please check your Go installation."
