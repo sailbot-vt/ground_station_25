@@ -431,6 +431,8 @@ class GroundStationWidget(QWidget):
                     json={"value": self.waypoints},
                     timeout=5,
                 ).json()
+                js_code = "map.change_color_waypoints('red')"
+                self.browser.page().runJavaScript(js_code)
             except requests.exceptions.ConnectionError as e:
                 print(f"Connection error: {e}")
                 print(f"Waypoints: {self.waypoints}")

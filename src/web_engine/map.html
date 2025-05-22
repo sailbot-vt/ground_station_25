@@ -115,7 +115,7 @@
                     });
 
                     if (response.ok) {
-                        console.log("Waypoints synced with server");
+                        console.log("Waypoints synced with server"); 
                     } else {
                         console.error("Failed to sync waypoints with server");
                     }
@@ -130,6 +130,22 @@
                     icon: map_interface.waypoint_icon
                 }).addTo(this.map);
                 this.sync_waypoints();
+            }
+
+            change_color_waypoints(color) {
+                this.waypoints.forEach((waypoint, index) => {
+                    this.map.eachLayer(layer => {
+                        if (layer instanceof L.Marker && layer.getLatLng().equals(waypoint)) {
+                            layer.setIcon(L.icon({
+                                iconUrl: `https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/marker-icon-${color}.png`,
+                                shadowUrl: `https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/marker-shadow.png`,
+                                iconSize: [25, 41],
+                                iconAnchor: [12, 41],
+                                shadowSize: [41, 41]
+                            }));
+                        }
+                    });
+                });
             }
 
             remove_waypoint(index) {

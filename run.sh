@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    xhost +
+    export QT_XCB_GL_INTEGRATION=none
+fi
+
 mkdir -p bin
 
 if [ -f "bin/server" ]; then
