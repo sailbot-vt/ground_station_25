@@ -885,11 +885,7 @@ class GroundStationWidget(QWidget):
         self.browser.page().runJavaScript(js_code)
 
     def zoom_to_boat(self) -> None:
-        """
-        Zoom in on the boat's location on the map.
-
-        This function is called when the "Zoom to Boat" button is clicked.
-        """
+        """Center the view on the boat's position."""
 
         if isinstance(self.boat_data.get("position"), list):
             js_code = "map.focus_map_on_boat()"
@@ -1001,7 +997,6 @@ class GroundStationWidget(QWidget):
 
             return ms * 1000
 
-
         if self.boat_data == []:
             telemetry_text = f"""Boat Info:
 Position: {boat_data.get("position")[0]:.8f}, {boat_data.get("position")[1]:.8f}
@@ -1069,13 +1064,12 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
         if isinstance(boat_data.get("position"), list):
             js_code = f"map.update_boat_location({boat_data.get('position')[0]}, {boat_data.get('position')[1]})"
             self.browser.page().runJavaScript(js_code)
-        
+
         js_code = f"map.update_boat_heading({boat_data.get('heading')})"
         self.browser.page().runJavaScript(js_code)
-        
+
         self.left_tab1_text_section.setText(telemetry_text)
         self.boat_data = boat_data
-
 
     def update_image_display(self, image: np.ndarray) -> None:
         """
@@ -1086,6 +1080,7 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
         image
             Numpy array containing the image fetched from the server.
         """
+
         pass
 
     # endregion pyqt thread functions
