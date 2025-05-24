@@ -478,7 +478,7 @@ class GroundStationWidget(QWidget):
             print(f"Connection error: {e}")
 
     def send_parameters(self) -> None:
-        """Send all parameters to the server."""
+        """Send all autopilot parameters to the server."""
 
         try:
             self.autopilot_parameters = {
@@ -500,12 +500,12 @@ class GroundStationWidget(QWidget):
 
     def send_individual_parameter(self, parameter: str) -> None:
         """
-        Send individual parameter to the server.
+        Send individual autopilot parameter to the server.
 
         Parameters
         ----------
         parameter
-            The parameter to send. Should be one of the keys in `self.autopilot_parameters`.
+            The autopilot parameter to send. Should be one of the keys in `self.autopilot_parameters`.
         """
 
         try:
@@ -536,12 +536,12 @@ class GroundStationWidget(QWidget):
 
     def reset_individual_parameter(self, parameter: str) -> None:
         """
-        Reset individual parameter to the value from the server.
+        Reset individual autopilot parameter to the value from the server.
 
         Parameters
         ----------
         parameter
-            The parameter to reset. Should be one of the keys in `self.autopilot_parameters`.
+            The autopilot parameter to reset. Should be one of the keys in `self.autopilot_parameters`.
         """
 
         try:
@@ -574,7 +574,7 @@ class GroundStationWidget(QWidget):
 
     def save_parameters(self) -> None:
         """
-        Save all parameters to a file.
+        Save autopilot parameters to a file.
 
         Files are stored in the `autopilot_params` directory and are named `params_<timestamp>.json`
         where `<timestamp>` is nanoseconds since unix epoch.
@@ -602,7 +602,11 @@ class GroundStationWidget(QWidget):
             print(f"Parameters: {self.autopilot_parameters}")
 
     def load_parameters(self) -> None:
-        """Load parameters from the latest file in the `autopilot_params` directory."""
+        """
+        Load values for the autopilot parameters from a file.
+
+        If no file is selected, the most recent file in the `autopilot_params` directory is used.
+        """
 
         try:
             param_files = os.listdir(constants.AUTO_PILOT_PARAMS_DIR)
@@ -963,26 +967,41 @@ class GroundStationWidget(QWidget):
             Dictionary containing boat data fetched from the telemetry server.
         """
 
-        def fix_formatting(data_item: float) -> str:
+        def fix_formatting(data_item: float | None) -> str:
             """
             Applies some formatting rules that multiple keys have in common.
+
+            <ol>
+            <li> If the value is None, it is replaced with -69.420.
+            <li> If the value is negative, it is multiplied by -1.
+            <li> The value is rounded to 5 decimal places.
+            </ol>
+
+            Examples
+            -------
+            >>> fix_formatting(-69.420)
+            '69.42000'
+            >>> fix_formatting(None)
+            '-69.42000'
 
             Parameters
             ----------
             data_item
-                The key to format. Should be one of the numeric keys in `boat_data`.
+                The float value to format.
 
             Returns
             -------
             str
-                The formatted value of the inputed key.
+                The formatted value.
             """
 
-            return f"{np.sign(data_item) * data_item:.5f}"
+            return (
+                f"{abs(data_item):.5f}" if data_item is not None else f"{-69.420:.5f}"
+            )
 
         def convert_to_seconds(ms: float) -> float:
             """
-            Converts milliseconds to seconds.
+            Converts milliseconds to seconds. 1000 milliseconds = 1 second.
 
             Parameters
             ----------
@@ -999,74 +1018,75 @@ class GroundStationWidget(QWidget):
 
         if self.boat_data == []:
             telemetry_text = f"""Boat Info:
-Position: {boat_data.get("position")[0]:.8f}, {boat_data.get("position")[1]:.8f}
+Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
 State: {boat_data.get("state", "N/A")}
-Speed: {boat_data.get("speed", "N/A"):.5f} knots
-Bearing: {boat_data.get("bearing", "N/A"):.5f}°
-Heading: {boat_data.get("heading", "N/A"):.5f}°
-True Wind Speed: {boat_data.get("true_wind_speed", "N/A"):.5f} knots
-True Wind Angle: {boat_data.get("true_wind_angle", "N/A"):.5f}°
-Apparent Wind Speed: {boat_data.get("apparent_wind_speed", "N/A"):.5f} knots
-Apparent Wind Angle: {boat_data.get("apparent_wind_angle", "N/A"):.5f}°
-Sail Angle: {boat_data.get("sail_angle", "N/A"):.5f}°
-Rudder Angle: {boat_data.get("rudder_angle", "N/A"):.5f}°
+Speed: {boat_data.get("speed", -69.420):.5f} knots
+Bearing: {boat_data.get("bearing", -69.420):.5f}°
+Heading: {boat_data.get("heading", -69.420):.5f}°
+True Wind Speed: {boat_data.get("true_wind_speed", -69.420):.5f} knots
+True Wind Angle: {boat_data.get("true_wind_angle", -69.420):.5f}°
+Apparent Wind Speed: {boat_data.get("apparent_wind_speed", -69.420):.5f} knots
+Apparent Wind Angle: {boat_data.get("apparent_wind_angle", -69.420):.5f}°
+Sail Angle: {boat_data.get("sail_angle", -69.420):.5f}°
+Rudder Angle: {boat_data.get("rudder_angle", -69.420):.5f}°
 Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
 Current Route: {boat_data.get("current_route", "N/A")}
 
 VESC Data:
-RPM: {fix_formatting(boat_data.get("vesc_data_rpm", "N/A"))}
-Duty Cycle: {fix_formatting(boat_data.get("vesc_data_duty_cycle", "N/A"))}%
-Amp Hours: {boat_data.get("vesc_data_amp_hours", "N/A"):.5f} Ah
-Current to VESC: {boat_data.get("vesc_data_current_to_vesc", "N/A"):.5f} A
-Voltage to VESC: {boat_data.get("vesc_data_voltage_to_vesc", "N/A"):.5f} V
-Wattage to Motor: {fix_formatting(boat_data.get("vesc_data_wattage_to_motor", "N/A"))} W
-Voltage to Motor: {boat_data.get("vesc_data_voltage_to_motor", "N/A"):.5f} V
-Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since_vesc_startup_in_ms", "N/A")):.5f} seconds 
-Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature", "N/A"))}°C
+RPM: {fix_formatting(boat_data.get("vesc_data_rpm"))}
+Duty Cycle: {fix_formatting(boat_data.get("vesc_data_duty_cycle"))}%
+Amp Hours: {boat_data.get("vesc_data_amp_hours", -69.420):.5f} Ah
+Current to VESC: {boat_data.get("vesc_data_current_to_vesc", -69.420):.5f} A
+Voltage to VESC: {boat_data.get("vesc_data_voltage_to_vesc", -69.420):.5f} V
+Wattage to Motor: {fix_formatting(boat_data.get("vesc_data_wattage_to_motor"))} W
+Voltage to Motor: {boat_data.get("vesc_data_voltage_to_motor", -69.420):.5f} V
+Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since_vesc_startup_in_ms", -1.0)):.5f} seconds 
+Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature"))}°C
 """
         else:
             for key in self.boat_data_averages.keys():
                 # self.boat_data = data from one iteration in the past
                 # boat_data = data from the current iteration
-                current_value = boat_data.get(key, 0.0)
-                if isinstance(current_value, (int, float)):
+                current_value = boat_data.get(key)
+                if current_value is not None:
                     self.boat_data_averages[key] = (
-                        self.boat_data_averages.get(key, 0.0) + current_value
+                        self.boat_data_averages[key] + current_value
                     ) / 2
 
             telemetry_text = f"""Boat Info:
-Position: {boat_data.get("position")[0]:.8f}, {boat_data.get("position")[1]:.8f}
+Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
 State: {boat_data.get("state", "N/A")}
-Speed: {boat_data.get("speed", "N/A"):.5f} knots
-Bearing: {boat_data.get("bearing", "N/A"):.5f}°
-Heading: {boat_data.get("heading", "N/A"):.5f}°
-True Wind Speed: {boat_data.get("true_wind_speed", "N/A"):.5f} knots
-True Wind Angle: {boat_data.get("true_wind_angle", "N/A"):.5f}°
-Apparent Wind Speed: {boat_data.get("apparent_wind_speed", "N/A"):.5f} knots
-Apparent Wind Angle: {boat_data.get("apparent_wind_angle", "N/A"):.5f}°
-Sail Angle: {boat_data.get("sail_angle", "N/A"):.5f}°
-Rudder Angle: {boat_data.get("rudder_angle", "N/A"):.5f}°
+Speed: {boat_data.get("speed", -69.420):.5f} knots
+Bearing: {boat_data.get("bearing", -69.420):.5f}°
+Heading: {boat_data.get("heading", -69.420):.5f}°
+True Wind Speed: {boat_data.get("true_wind_speed", -69.420):.5f} knots
+True Wind Angle: {boat_data.get("true_wind_angle", -69.420):.5f}°
+Apparent Wind Speed: {boat_data.get("apparent_wind_speed", -69.420):.5f} knots
+Apparent Wind Angle: {boat_data.get("apparent_wind_angle", -69.420):.5f}°
+Sail Angle: {boat_data.get("sail_angle", -69.420):.5f}°
+Rudder Angle: {boat_data.get("rudder_angle", -69.420):.5f}°
 Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
 Current Route: {boat_data.get("current_route", "N/A")}
 
 VESC Data:
-RPM: {fix_formatting(self.boat_data_averages.get("vesc_data_rpm", "N/A"))}
-Duty Cycle: {fix_formatting(boat_data.get("vesc_data_duty_cycle", "N/A"))}%
-Amp Hours: {self.boat_data_averages.get("vesc_data_amp_hours", "N/A"):.5f} Ah
-Current to VESC: {self.boat_data_averages.get("vesc_data_current_to_vesc", "N/A"):.5f} A
-Voltage to VESC: {self.boat_data_averages.get("vesc_data_voltage_to_vesc", "N/A"):.5f} V
-Wattage to Motor: {fix_formatting(self.boat_data_averages.get("vesc_data_wattage_to_motor", "N/A"))} W
-Voltage to Motor: {self.boat_data_averages.get("vesc_data_voltage_to_motor", "N/A"):.5f} V
-Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since_vesc_startup_in_ms", "N/A")):.5f} seconds 
-Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_temperature", "N/A"))}°C
+RPM: {fix_formatting(self.boat_data_averages.get("vesc_data_rpm"))}
+Duty Cycle: {fix_formatting(boat_data.get("vesc_data_duty_cycle"))}%
+Amp Hours: {self.boat_data_averages.get("vesc_data_amp_hours", -69.420):.5f} Ah
+Current to VESC: {self.boat_data_averages.get("vesc_data_current_to_vesc", -69.420):.5f} A
+Voltage to VESC: {self.boat_data_averages.get("vesc_data_voltage_to_vesc", -69.420):.5f} V
+Wattage to Motor: {fix_formatting(self.boat_data_averages.get("vesc_data_wattage_to_motor"))} W
+Voltage to Motor: {self.boat_data_averages.get("vesc_data_voltage_to_motor", -69.420):.5f} V
+Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since_vesc_startup_in_ms", -1)):.5f} seconds 
+Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_temperature"))}°C
 """
 
         if isinstance(boat_data.get("position"), list):
             js_code = f"map.update_boat_location({boat_data.get('position')[0]}, {boat_data.get('position')[1]})"
             self.browser.page().runJavaScript(js_code)
 
-        js_code = f"map.update_boat_heading({boat_data.get('heading')})"
-        self.browser.page().runJavaScript(js_code)
+        if isinstance(boat_data.get("heading"), float):
+            js_code = f"map.update_boat_heading({boat_data.get('heading')})"
+            self.browser.page().runJavaScript(js_code)
 
         self.left_tab1_text_section.setText(telemetry_text)
         self.boat_data = boat_data
