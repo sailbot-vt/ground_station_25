@@ -35,7 +35,7 @@
             static boat_icon = L.icon({
                 iconUrl: "https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/boat.png",
                 iconSize: [50, 50],
-                iconAnchor: [25, 25]
+                iconAnchor: [25, 25],
             });
             static buoy_icon = L.icon({
                 iconUrl: `https://raw.githubusercontent.com/sailbot-vt/ground_station_25/refs/heads/main/app_data/assets/marker-icon-${map_interface.buoy_color}.png`,
@@ -176,6 +176,11 @@
             update_boat_location(lat, lon) {
                 this.boat.location = [lat, lon];
                 this.boat_marker.setLatLng(this.boat.location);
+            }
+
+            update_boat_heading(heading) {
+                this.boat.heading = heading;
+                this.boat_marker.setRotationAngle(90-heading);
             }
 
             focus_map_on_boat() {
