@@ -1001,6 +1001,7 @@ class GroundStationWidget(QWidget):
 
             return ms * 1000
 
+
         if self.boat_data == []:
             telemetry_text = f"""Boat Info:
 Position: {boat_data.get("position")[0]:.8f}, {boat_data.get("position")[1]:.8f}
@@ -1065,11 +1066,16 @@ Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since
 Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_temperature", "N/A"))}°C
 """
 
-        self.boat_data = boat_data
         if isinstance(boat_data.get("position"), list):
             js_code = f"map.update_boat_location({boat_data.get('position')[0]}, {boat_data.get('position')[1]})"
             self.browser.page().runJavaScript(js_code)
+        
+        js_code = f"map.update_boat_heading({boat_data.get('heading')})"
+        self.browser.page().runJavaScript(js_code)
+        
         self.left_tab1_text_section.setText(telemetry_text)
+        self.boat_data = boat_data
+
 
     def update_image_display(self, image: np.ndarray) -> None:
         """
