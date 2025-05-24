@@ -1,7 +1,9 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtGui import QIcon
 
 from widgets.groundstation import GroundStationWidget
+from icons import get_icons
 import constants
 
 
@@ -24,7 +26,10 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setApplicationName("SailBussy Ground Station")
     app.setStyle("Fusion")
+    app_icon: QIcon = get_icons().boat
+    app.setWindowIcon(app_icon)
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
