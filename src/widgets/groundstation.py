@@ -334,9 +334,17 @@ class GroundStationWidget(QWidget):
         self.clear_waypoints_button.setDisabled(True)
         self.can_reset_waypoints = False
 
+        self.pull_waypoints_button = QPushButton("Pull Waypoints")
+        self.pull_waypoints_button.setIcon(self.icons.download)
+        self.pull_waypoints_button.setMaximumWidth(self.right_width // 2)
+        self.pull_waypoints_button.setMinimumHeight(50)
+        self.pull_waypoints_button.clicked.connect(self.pull_waypoints)
+        self.pull_waypoints_button.setDisabled(False)
+        self.can_pull_waypoints = True
+
         self.focus_boat_button = QPushButton("Zoom to Boat")
         self.focus_boat_button.setIcon(self.icons.boat)
-        self.focus_boat_button.setMinimumWidth(self.right_width)
+        self.focus_boat_button.setMaximumWidth(self.right_width // 2)
         self.focus_boat_button.setMinimumHeight(50)
         self.focus_boat_button.clicked.connect(self.zoom_to_boat)
         self.focus_boat_button.setDisabled(False)
@@ -345,7 +353,8 @@ class GroundStationWidget(QWidget):
         self.right_tab1_layout.addWidget(self.right_tab1_table, 1, 0, 1, 2)
         self.right_tab1_layout.addWidget(self.send_waypoints_button, 2, 0)
         self.right_tab1_layout.addWidget(self.clear_waypoints_button, 2, 1)
-        self.right_tab1_layout.addWidget(self.focus_boat_button, 3, 0, 1, 2)
+        self.right_tab1_layout.addWidget(self.focus_boat_button, 3, 0)
+        self.right_tab1_layout.addWidget(self.pull_waypoints_button, 3, 1)
         self.right_tab1.setLayout(self.right_tab1_layout)
         # endregion tab1: waypoint data
 
@@ -448,6 +457,34 @@ class GroundStationWidget(QWidget):
             except requests.exceptions.ConnectionError as e:
                 print(f"Connection error: {e}")
                 print(f"Waypoints: {self.waypoints}")
+
+    def pull_waypoints(self) -> None:
+        """Pull waypoints from the telemetry server and add them to the map."""
+
+        try:
+            remote_waypoints = requests.get(
+                constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"],
+                timeout=5,
+            ).json()["current_route"]
+            if remote_waypoints:
+                existing_waypoints = self.waypoints.copy()
+                self.browser.page().runJavaScript("map.clear_waypoints()")
+                for waypoint in remote_waypoints:
+                    self.browser.page().runJavaScript(
+                        f"map.add_waypoint({waypoint[0]}, {waypoint[1]})"
+                    )
+                self.browser.page().runJavaScript("map.change_color_waypoints('red')")
+                for waypoint in existing_waypoints:
+                    self.browser.page().runJavaScript(
+                        f"map.add_waypoint({waypoint[0]}, {waypoint[1]})"
+                    )
+            else:
+                print("No waypoints found on the server.")
+            self.can_pull_waypoints = False
+            self.pull_waypoints_button.setDisabled(not self.can_pull_waypoints)
+
+        except requests.exceptions.ConnectionError as e:
+            print(f"Connection error: {e}")
 
     def get_autopilot_parameters(self) -> None:
         """Get autopilot parameters from the server."""
