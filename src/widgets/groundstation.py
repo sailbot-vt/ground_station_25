@@ -5,6 +5,8 @@ import base64
 import requests
 import json
 import numpy as np
+import geopy
+import geopy.distance
 
 import constants
 from icons import get_icons
@@ -511,28 +513,22 @@ class GroundStationWidget(QWidget):
         try:
             self.autopilot_parameters = {
                 "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
-                "waypoint_accuracy": float(self.waypoint_accuracy_text_box.text()),
-                "no_sail_zone_size": float(self.no_sail_zone_size_text_box.text()),
-                "autopilot_refresh_rate": float(
-                    self.autopilot_refresh_rate_text_box.text()
-                ),
-                "tack_distance": float(self.tack_distance_text_box.text()),
+                "waypoint_accuracy": self.safe_convert_to_float(self.waypoint_accuracy_text_box.text()),
+                "no_sail_zone_size": self.safe_convert_to_float(self.no_sail_zone_size_text_box.text()),
+                "autopilot_refresh_rate": self.safe_convert_to_float(self.autopilot_refresh_rate_text_box.text()),
+                "tack_distance": self.safe_convert_to_float(self.tack_distance_text_box.text()),
             }
-            existing_params = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
-                timeout=5,
+            
+            requests.post(
+                constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
+                json={"value": {parameter: self.autopilot_parameters[parameter]}},
             ).json()
-            if existing_params == {}:
-                print("Connection successful but no parameters found.")
-            else:
-                existing_params[parameter] = self.autopilot_parameters[parameter]
-                requests.post(
-                    constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
-                    json={"value": existing_params},
-                ).json()
+            
+            
         except ValueError or requests.exceptions.ConnectionError as e:
             print(f"Error: {e}")
             print(f"Inputed parameter: {parameter}")
+
 
     def reset_individual_parameter(self, parameter: str) -> None:
         """
@@ -1001,12 +997,29 @@ class GroundStationWidget(QWidget):
 
             return ms * 1000
 
-
+        def get_distance_to_waypoint(cur_position, next_waypoint):
+            if next_waypoint:
+                return f"{geopy.distance.geodesic(next_waypoint, cur_position).m:1f}"
+            else:
+                return f"{geopy.distance.Distance(0.).m:1f}"
+    
+    
+        try:
+            current_position = boat_data.get("position")
+            waypoint_route = boat_data.get("current_route", [])
+            index = boat_data.get("current_waypoint_index", "N/A")
+            distance_to_next_waypoint = f"{get_distance_to_waypoint(current_position, waypoint_route[index])}"
+        except Exception as e:
+            print(e)
+            distance_to_next_waypoint = "N/A"
+        
+        
         if self.boat_data == []:
             telemetry_text = f"""Boat Info:
 Position: {boat_data.get("position")[0]:.8f}, {boat_data.get("position")[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", "N/A"):.5f} knots
+Distance To Next Waypoint: {distance_to_next_waypoint} meters
 Bearing: {boat_data.get("bearing", "N/A"):.5f}°
 Heading: {boat_data.get("heading", "N/A"):.5f}°
 True Wind Speed: {boat_data.get("true_wind_speed", "N/A"):.5f} knots
@@ -1043,6 +1056,7 @@ Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature", 
 Position: {boat_data.get("position")[0]:.8f}, {boat_data.get("position")[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", "N/A"):.5f} knots
+Distance To Next Waypoint: {distance_to_next_waypoint} meters
 Bearing: {boat_data.get("bearing", "N/A"):.5f}°
 Heading: {boat_data.get("heading", "N/A"):.5f}°
 True Wind Speed: {boat_data.get("true_wind_speed", "N/A"):.5f} knots
@@ -1122,3 +1136,14 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
             raise ValueError("Invalid action. Use 'send' or 'reset'.")
 
     # endregion helper functions
+
+    
+    
+    
+    
+    # MISC HELPER FUNCTIONS
+    def safe_convert_to_float(self, x):
+        try:
+            return float(x)
+        except:
+            return 0
