@@ -15,7 +15,7 @@ from widgets.popup_edit import TextEditWindow
 
 from functools import partial
 from pathlib import PurePath
-from typing import Union
+from typing import Union, Literal
 
 from PyQt5.QtCore import Qt, QTimer
 
@@ -513,22 +513,28 @@ class GroundStationWidget(QWidget):
         try:
             self.autopilot_parameters = {
                 "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
-                "waypoint_accuracy": self.safe_convert_to_float(self.waypoint_accuracy_text_box.text()),
-                "no_sail_zone_size": self.safe_convert_to_float(self.no_sail_zone_size_text_box.text()),
-                "autopilot_refresh_rate": self.safe_convert_to_float(self.autopilot_refresh_rate_text_box.text()),
-                "tack_distance": self.safe_convert_to_float(self.tack_distance_text_box.text()),
+                "waypoint_accuracy": self.safe_convert_to_float(
+                    self.waypoint_accuracy_text_box.text()
+                ),
+                "no_sail_zone_size": self.safe_convert_to_float(
+                    self.no_sail_zone_size_text_box.text()
+                ),
+                "autopilot_refresh_rate": self.safe_convert_to_float(
+                    self.autopilot_refresh_rate_text_box.text()
+                ),
+                "tack_distance": self.safe_convert_to_float(
+                    self.tack_distance_text_box.text()
+                ),
             }
-            
+
             requests.post(
                 constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
                 json={"value": {parameter: self.autopilot_parameters[parameter]}},
             ).json()
-            
-            
+
         except ValueError or requests.exceptions.ConnectionError as e:
             print(f"Error: {e}")
             print(f"Inputed parameter: {parameter}")
-
 
     def reset_individual_parameter(self, parameter: str) -> None:
         """
@@ -1012,29 +1018,47 @@ class GroundStationWidget(QWidget):
 
             return ms * 1000
 
-        def get_distance_to_waypoint(cur_position, next_waypoint):
+        def get_distance_to_waypoint(
+            cur_position: list[float, float], next_waypoint: list[float, float]
+        ) -> float:
+            """
+            Calculates the distance to the next waypoint from the current position using geopy.
+
+            Parameters
+            ----------
+            cur_position
+                The current position of the boat as a list of latitude and longitude.
+            next_waypoint
+                The next waypoint as a list of latitude and longitude.
+
+            Returns
+            -------
+            float
+                The distance to the next waypoint in meters.
+            """
+
             if next_waypoint:
-                return f"{geopy.distance.geodesic(next_waypoint, cur_position).m:1f}"
+                return geopy.distance.geodesic(next_waypoint, cur_position).m
             else:
-                return f"{geopy.distance.Distance(0.).m:1f}"
-    
-    
+                return geopy.distance.Distance(0.0).m
+
         try:
             current_position = boat_data.get("position")
             waypoint_route = boat_data.get("current_route", [])
             index = boat_data.get("current_waypoint_index", "N/A")
-            distance_to_next_waypoint = f"{get_distance_to_waypoint(current_position, waypoint_route[index])}"
+            distance_to_next_waypoint = get_distance_to_waypoint(
+                current_position, waypoint_route[index]
+            )
         except Exception as e:
             print(e)
             distance_to_next_waypoint = "N/A"
-        
-        
+
         if self.boat_data == []:
             telemetry_text = f"""Boat Info:
 Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", -69.420):.5f} knots
-Distance To Next Waypoint: {distance_to_next_waypoint} meters
+Distance To Next WP: {distance_to_next_waypoint:.5f} meters
 Bearing: {boat_data.get("bearing", -69.420):.5f}°
 Heading: {boat_data.get("heading", -69.420):.5f}°
 True Wind Speed: {boat_data.get("true_wind_speed", -69.420):.5f} knots
@@ -1071,7 +1095,7 @@ Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature"))
 Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", -69.420):.5f} knots
-Distance To Next Waypoint: {distance_to_next_waypoint} meters
+Distance To Next WP: {distance_to_next_waypoint:.5f} meters
 Bearing: {boat_data.get("bearing", -69.420):.5f}°
 Heading: {boat_data.get("heading", -69.420):.5f}°
 True Wind Speed: {boat_data.get("true_wind_speed", -69.420):.5f} knots
@@ -1151,15 +1175,24 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
         else:
             raise ValueError("Invalid action. Use 'send' or 'reset'.")
 
-    # endregion helper functions
+    def safe_convert_to_float(self, x) -> float | Literal[0]:
+        """
+        Safely convert a value to float, returning 0 if conversion fails.
 
-    
-    
-    
-    
-    # MISC HELPER FUNCTIONS
-    def safe_convert_to_float(self, x):
+        Parameters
+        ----------
+        x
+            The value to convert to float.
+
+        Returns
+        -------
+        float or Literal[0]
+            The converted float value, or 0 if conversion fails.
+        """
+
         try:
             return float(x)
-        except:
+        except ValueError:
             return 0
+
+    # endregion helper functions
