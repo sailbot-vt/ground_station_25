@@ -924,6 +924,8 @@ class GroundStationWidget(QWidget):
         """Clear waypoints from the table."""
 
         self.can_reset_waypoints = False
+        self.can_pull_waypoints = True
+        self.pull_waypoints_button.setDisabled(not self.can_pull_waypoints)
         js_code = "map.clear_waypoints()"
         self.browser.page().runJavaScript(js_code)
 
