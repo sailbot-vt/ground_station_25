@@ -5,6 +5,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     export QT_XCB_GL_INTEGRATION=none
     export XDG_SESSION_TYPE=x11
     export QT_QPA_PLATFORM=xcb
+    alias python=python3
 fi
 
 mkdir -p bin
