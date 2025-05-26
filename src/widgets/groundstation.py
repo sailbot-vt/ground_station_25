@@ -1090,7 +1090,7 @@ class GroundStationWidget(QWidget):
             )
         except Exception as e:
             print(e)
-            distance_to_next_waypoint = "N/A"
+            distance_to_next_waypoint = 0.
 
         if self.boat_data == []:
             telemetry_text = f"""Boat Info:
