@@ -1,10 +1,11 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow
-from PyQt5.QtGui import QIcon
-
 from widgets.groundstation import GroundStationWidget
+from widgets.camera_widget.camera import CameraWidget
 from icons import get_icons
 import constants
+
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTabWidget
+from PyQt5.QtGui import QIcon
 
 
 class MainWindow(QMainWindow):
@@ -20,8 +21,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("SailBussy Ground Station")
         self.setGeometry(constants.WINDOW_BOX)
-        self.main_widget = GroundStationWidget()
+        self.main_widget = QTabWidget()
         self.setCentralWidget(self.main_widget)
+        self.main_widget.addTab(GroundStationWidget(), "Ground Station")
+        self.main_widget.addTab(CameraWidget(), "Camera Feed")
+        self.main_widget.setCurrentIndex(0)
 
 
 if __name__ == "__main__":

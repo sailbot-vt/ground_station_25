@@ -2,8 +2,6 @@ import requests
 import constants
 from typing import Union
 from PyQt5.QtCore import QThread, pyqtSignal
-# import numpy as np
-# import cv2
 
 
 class TelemetryUpdater(QThread):
@@ -103,39 +101,42 @@ class WaypointFetcher(QThread):
         self.get_waypoints()
 
 
-# class ImageFetcher(QThread):
-#     """
-#     Thread to fetch images from the telemetry server.
+class ImageFetcher(QThread):
+    """
+    Thread to fetch images from the telemetry server.
 
-#     Inherits
-#     -------
-#     `QThread`
+    Inherits
+    -------
+    `QThread`
 
-#     Attributes
-#     ----------
-#     image_fetched : `pyqtSignal`
-#         Signal to send image to the main thread. Emits a numpy array containing the image.
-#     """
+    Attributes
+    ----------
+    image_fetched : `pyqtSignal`
+        Signal to send image to the main thread. Emits a base64 encoded string of the image.
+    """
 
-#     image_fetched = pyqtSignal(np.ndarray)
+    image_fetched = pyqtSignal(str)
 
-#     def __init__(self) -> None:
-#         super().__init__()
+    def __init__(self) -> None:
+        super().__init__()
 
-#     def get_image(self) -> None:
-#         try:
-#             base64_encoded_image = requests.get(
-#                 constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
-#                 timeout=5,
-#             ).json()["current_camera_image"]
-#             jpg_original = base64.b64decode(base64_encoded_image)
-#             jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
-#             img = cv2.imdecode(jpg_as_np, flags=1)
-#             self.image_fetched.emit(img)
-#         except Exception as e:
-#             print(f"Failed to fetch image: {e}")
-#             image = np.zeros((480, 640, 3), dtype=np.uint8)
-#             self.image_fetched.emit(image)
+    def get_image(self) -> None:
+        try:
+            image_data = requests.get(
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
+                timeout=5,
+            ).json()
+            base64_encoded_image = image_data.get("current_camera_image")
+            if base64_encoded_image is None:
+                raise requests.RequestException("No image found in response.")
 
-#     def run(self) -> None:
-#         self.get_image()
+        except requests.RequestException:
+            base64_encoded_image = open(
+                constants.ASSETS_DIR / "cool-guy-base64.txt"
+            ).read()
+            print("Failed to fetch image. Using cool guy image.")
+
+        self.image_fetched.emit(base64_encoded_image)
+
+    def run(self) -> None:
+        self.get_image()

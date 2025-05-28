@@ -1,10 +1,20 @@
 import os
 import sys
 from pathlib import PurePath
-from PyQt5.QtCore import QRect
+from PyQt5.QtCore import QRect, QTimer
 
-# Window dimensions
+# window dimensions
 WINDOW_BOX = QRect(100, 100, 800, 600)
+
+# timers
+SUPER_SLOW_TIMER = QTimer()
+SUPER_SLOW_TIMER.setInterval(100)
+
+SLOW_TIMER = QTimer()
+SLOW_TIMER.setInterval(2)  # 2 ms for slow timer
+
+FAST_TIMER = QTimer()
+FAST_TIMER.setInterval(1)  # 1 ms for fast timer
 
 # base url for telemetry server
 TELEMETRY_SERVER_URL = "http://18.191.164.84:8080/"
@@ -32,6 +42,10 @@ try:
     WEB_ENGINE_DIR = PurePath(SRC_DIR / "web_engine")
     HTML_MAP_PATH = PurePath(WEB_ENGINE_DIR / "map.html")
     HTML_MAP = open(HTML_MAP_PATH).read()
+
+    CAMERA_DIR = PurePath(SRC_DIR / "widgets" / "camera_widget")
+    HTML_CAMERA_PATH = PurePath(CAMERA_DIR / "camera.html")
+    HTML_CAMERA = open(HTML_CAMERA_PATH).read()
 
     if "autopilot_params" not in os.listdir(DATA_DIR):
         os.makedirs(DATA_DIR / "autopilot_params")

@@ -4,7 +4,6 @@ import time
 import base64
 import requests
 import json
-import numpy as np
 import geopy
 import geopy.distance
 
@@ -17,9 +16,7 @@ from functools import partial
 from pathlib import PurePath
 from typing import Union, Literal
 
-from PyQt5.QtCore import Qt, QTimer
-
-# from PyQt5.QtGui import QImage
+from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
     QCheckBox,
@@ -402,27 +399,24 @@ class GroundStationWidget(QWidget):
 
         self.telemetry_handler = thread_classes.TelemetryUpdater()
         self.js_waypoint_handler = thread_classes.WaypointFetcher()
-        # self.image_handler = thread_classes.ImageFetcher()
 
         # Connect signals to update UI
         self.telemetry_handler.boat_data_fetched.connect(self.update_telemetry_display)
         self.js_waypoint_handler.waypoints_fetched.connect(
             self.update_waypoints_display
         )
-        # self.image_handler.image_fetched.connect(self.update_image_display)
 
         # Slow timer
-        self.slow_timer = QTimer(self)
-        self.slow_timer.timeout.connect(self.update_telemetry_starter)
+        self.slow_timer = constants.SLOW_TIMER
+        constants.SLOW_TIMER.timeout.connect(self.update_telemetry_starter)
 
         # Fast timer
-        self.fast_timer = QTimer(self)
-        self.fast_timer.timeout.connect(self.js_waypoint_handler_starter)
-        # self.fast_timer.timeout.connect(self.update_image_starter)
+        self.fast_timer = constants.FAST_TIMER
+        constants.FAST_TIMER.timeout.connect(self.js_waypoint_handler_starter)
 
         # Start timers
-        self.fast_timer.start(1)  # milliseconds
-        self.slow_timer.start(2)  # milliseconds
+        self.fast_timer.start()
+        self.slow_timer.start()
 
     # region button functions
     def send_waypoints(self, test: bool = False) -> None:
@@ -953,12 +947,6 @@ class GroundStationWidget(QWidget):
         if not self.telemetry_handler.isRunning():
             self.telemetry_handler.start()
 
-    def update_image_starter(self) -> None:
-        """Starts the image handler thread."""
-
-        if not self.image_handler.isRunning():
-            self.image_handler.start()
-
     def update_waypoints_display(self, waypoints: list[list[float]]) -> None:
         """
         Update waypoints display with fetched waypoints.
@@ -1090,7 +1078,7 @@ class GroundStationWidget(QWidget):
             )
         except Exception as e:
             print(e)
-            distance_to_next_waypoint = 0.
+            distance_to_next_waypoint = 0.0
 
         if self.boat_data == []:
             telemetry_text = f"""Boat Info:
@@ -1168,18 +1156,6 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
 
         self.left_tab1_text_section.setText(telemetry_text)
         self.boat_data = boat_data
-
-    def update_image_display(self, image: np.ndarray) -> None:
-        """
-        Update image display with fetched image.
-
-        Parameters
-        ----------
-        image
-            Numpy array containing the image fetched from the server.
-        """
-
-        pass
 
     # endregion pyqt thread functions
 
