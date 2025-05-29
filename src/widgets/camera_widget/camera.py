@@ -2,8 +2,16 @@ import constants
 import thread_classes
 import json
 
+from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWidgets import QWidget, QHBoxLayout
+from PyQt5.QtWidgets import (
+    QWidget,
+    QGridLayout,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLabel,
+)
 
 
 class CameraWidget(QWidget):
@@ -22,19 +30,53 @@ class CameraWidget(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
+        self.main_layout = QGridLayout()
+
+        self.controls_layout = QHBoxLayout()
+
+        self.pause_button = QPushButton("Pause")
+        self.pause_button.clicked.connect(self.pause_timer)
+        self.is_paused = True
+        self.pause_button.setDisabled(not self.is_paused)
+
+        self.run_button = QPushButton("Run")
+        self.run_button.clicked.connect(self.unpause_timer)
+        self.is_running = False
+
+        self.controls_layout.addWidget(self.pause_button)
+        self.controls_layout.addWidget(self.run_button)
+        self.main_layout.addLayout(self.controls_layout, 1, 0)
+
+        self.web_view_layout = QHBoxLayout()
+        
         self.web_view = QWebEngineView()
         self.web_view.setHtml(constants.HTML_CAMERA)
 
-        layout = QHBoxLayout()
-        layout.addWidget(self.web_view)
-        self.setLayout(layout)
+        self.web_view_layout.addWidget(self.web_view)
+        self.main_layout.addLayout(self.web_view_layout, 0, 0)
+        self.setLayout(self.main_layout)
 
         self.image_fetcher = thread_classes.ImageFetcher()
         self.image_fetcher.image_fetched.connect(self.update_camera_feed)
 
         self.timer = constants.SUPER_SLOW_TIMER
         self.timer.timeout.connect(self.image_fetcher.get_image)
+
+    def unpause_timer(self) -> None:
+        """Unpause the timer that fetches images from the camera."""
+
         self.timer.start()
+        self.is_running = True
+        self.is_paused = False
+        print("Unpaused camera feed timer.")
+
+    def pause_timer(self) -> None:
+        """Pause the timer that fetches images from the camera."""
+
+        self.timer.stop()
+        self.is_running = False
+        self.is_paused = True
+        print("Paused camera feed timer.")
 
     def update_camera_feed_starter(self) -> None:
         """Start the image fetcher thread to update the camera feed if it is not already running."""
