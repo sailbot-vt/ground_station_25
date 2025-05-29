@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    xhost +
+    # xhost +
     export QT_XCB_GL_INTEGRATION=none
     export XDG_SESSION_TYPE=x11
     export QT_QPA_PLATFORM=xcb

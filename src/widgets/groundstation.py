@@ -14,7 +14,7 @@ from widgets.popup_edit import TextEditWindow
 
 from functools import partial
 from pathlib import PurePath
-from typing import Union, Literal
+from typing import Union, Literal, Optional
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -996,7 +996,7 @@ class GroundStationWidget(QWidget):
             Dictionary containing boat data fetched from the telemetry server.
         """
 
-        def fix_formatting(data_item: float | None) -> str:
+        def fix_formatting(data_item: Optional[float]) -> str:
             """
             Applies some formatting rules that multiple keys have in common.
 
