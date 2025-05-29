@@ -2,16 +2,8 @@ import constants
 import thread_classes
 import json
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
-from PyQt5.QtWidgets import (
-    QWidget,
-    QGridLayout,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QLabel,
-)
+from PyQt5.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QPushButton
 
 
 class CameraWidget(QWidget):
@@ -48,7 +40,7 @@ class CameraWidget(QWidget):
         self.main_layout.addLayout(self.controls_layout, 1, 0)
 
         self.web_view_layout = QHBoxLayout()
-        
+
         self.web_view = QWebEngineView()
         self.web_view.setHtml(constants.HTML_CAMERA)
 
