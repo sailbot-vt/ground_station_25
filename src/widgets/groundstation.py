@@ -1190,7 +1190,7 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
         else:
             raise ValueError("Invalid action. Use 'send' or 'reset'.")
 
-    def safe_convert_to_float(self, x) -> float | Literal[0]:
+    def safe_convert_to_float(self, x) -> Union[float, Literal[0]]:
         """
         Safely convert a value to float, returning 0 if conversion fails.
 
