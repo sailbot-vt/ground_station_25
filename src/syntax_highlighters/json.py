@@ -36,7 +36,8 @@ class JsonHighlighter(QSyntaxHighlighter):
         }
 
     def create_format(self, color: QColor, weight: QFont.Weight) -> QTextCharFormat:
-        """Create a `QTextCharFormat` with the specified color and font weight.
+        """
+        Create a `QTextCharFormat` with the specified color and font weight.
 
         Parameters
         ----------
@@ -57,7 +58,8 @@ class JsonHighlighter(QSyntaxHighlighter):
         return fmt
 
     def highlightBlock(self, text: str) -> None:
-        """Highlight the text block using the defined patterns and formats.
+        """
+        Highlight the text block using the defined patterns and formats.
 
         Parameters
         ----------
