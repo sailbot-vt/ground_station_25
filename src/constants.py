@@ -8,7 +8,7 @@ WINDOW_BOX = QRect(100, 100, 800, 600)
 
 # timers
 SUPER_SLOW_TIMER = QTimer()
-SUPER_SLOW_TIMER.setInterval(100)
+SUPER_SLOW_TIMER.setInterval(500)
 
 SLOW_TIMER = QTimer()
 SLOW_TIMER.setInterval(2)  # 2 ms for slow timer
