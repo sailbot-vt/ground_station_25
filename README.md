@@ -9,7 +9,7 @@ This tool offers an intuitive interface that allows users to monitor telemetry d
 Ensure that you have the following software installed on your system:
 
 - [Go](https://go.dev/doc/install) (1.23.4)
-- [Python](https://www.python.org/downloads/) (tested using version 3.13, but other versions make also work)
+- [Python](https://www.python.org/downloads/) (tested using version 3.13, but other versions may also work)
 
 ### Installation
 
