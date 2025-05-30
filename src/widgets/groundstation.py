@@ -14,9 +14,10 @@ from widgets.popup_edit import TextEditWindow
 
 from functools import partial
 from pathlib import PurePath
-from typing import Union, Literal, Optional
+from typing import Union, Literal, Optional, Any
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
     QCheckBox,
@@ -48,10 +49,9 @@ class GroundStationWidget(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
-        self.waypoints = []
+        self.icons = get_icons()
+        self.waypoints: list[list[float]] = list()
         self.num_waypoints = 0
-        self.buoys = {}
-        self.boat_data = {}
         self.boat_data_averages = {
             "vesc_data_rpm": 0.0,
             "vesc_data_amp_hours": 0.0,
@@ -62,9 +62,10 @@ class GroundStationWidget(QWidget):
             "vesc_data_wattage_to_motor": 0.0,
             "vesc_data_motor_temperature": 0.0,
         }
-        self.autopilot_parameters = {}
-        self.telemetry_data_limits = {}
-        self.icons = get_icons()
+        self.buoys: dict[dict[str, float]] = dict()
+        self.boat_data: dict[str, Any] = dict()
+        self.autopilot_parameters: dict[str, Any] = dict()
+        self.telemetry_data_limits: dict[str, float] = dict()
 
         # region define layouts
         self.main_layout = QGridLayout()
@@ -98,31 +99,40 @@ class GroundStationWidget(QWidget):
         self.left_tab1_text_section.setReadOnly(True)
         self.left_tab1_text_section.setText("Awaiting telemetry data...")
 
-        self.save_boat_data_button = QPushButton("Save Boat Data to File")
-        self.save_boat_data_button.setIcon(self.icons.save)
-        self.save_boat_data_button.setMaximumWidth(self.left_width)
-        self.save_boat_data_button.setMinimumHeight(50)
-        self.save_boat_data_button.clicked.connect(self.save_boat_data)
-        self.save_boat_data_button.setDisabled(False)
+        self.save_boat_data_button = self.pushbutton_maker(
+            "Save Boat Data to File",
+            self.icons.save,
+            self.save_boat_data,
+            self.left_width,
+            50,
+        )
 
-        self.edit_boat_data_limits_button = QPushButton("Edit Limits")
-        self.edit_boat_data_limits_button.setIcon(self.icons.edit)
-        self.edit_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
-        self.edit_boat_data_limits_button.setMinimumHeight(50)
-        self.edit_boat_data_limits_button.clicked.connect(self.edit_boat_data_limits)
+        self.edit_boat_data_limits_button = self.pushbutton_maker(
+            "Edit Limits",
+            self.icons.edit,
+            self.edit_boat_data_limits,
+            self.left_width // 2,
+            50,
+        )
 
         self.side_buttons_layout = QVBoxLayout()
-        self.load_boat_data_limits_button = QPushButton("Load Limits from File")
-        self.load_boat_data_limits_button.setIcon(self.icons.hard_drive)
-        self.load_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
-        self.load_boat_data_limits_button.setMinimumHeight(25)
-        self.load_boat_data_limits_button.clicked.connect(self.load_boat_data_limits)
 
-        self.save_boat_data_limits_button = QPushButton("Save Limits to File")
-        self.save_boat_data_limits_button.setIcon(self.icons.save)
-        self.save_boat_data_limits_button.setMaximumWidth(self.left_width // 2)
-        self.save_boat_data_limits_button.setMinimumHeight(25)
-        self.save_boat_data_limits_button.clicked.connect(self.save_boat_data_limits)
+        self.load_boat_data_limits_button = self.pushbutton_maker(
+            "Load Limits from File",
+            self.icons.hard_drive,
+            self.load_boat_data_limits,
+            self.left_width // 2,
+            25,
+        )
+
+        self.save_boat_data_limits_button = self.pushbutton_maker(
+            "Save Limits to File",
+            self.icons.save,
+            self.save_boat_data_limits,
+            self.left_width // 2,
+            25,
+        )
+
         self.side_buttons_layout.addWidget(self.load_boat_data_limits_button)
         self.side_buttons_layout.addWidget(self.save_boat_data_limits_button)
 
@@ -144,27 +154,25 @@ class GroundStationWidget(QWidget):
         self.autopilot_param_control_groupbox = QGroupBox("Parameter Control")
         self.autopilot_param_control_layout = QVBoxLayout()
 
-        self.left_tab2_reset_button = QPushButton("Reset Parameters")
-        self.left_tab2_reset_button.setIcon(self.icons.refresh)
-        self.left_tab2_reset_button.clicked.connect(self.reset_parameters)
-        self.left_tab2_send_button = QPushButton("Send Parameters")
-        self.left_tab2_send_button.setIcon(self.icons.upload)
-        self.left_tab2_send_button.clicked.connect(self.send_parameters)
-        self.left_tab2_save_button = QPushButton("Save Parameters to File")
-        self.left_tab2_save_button.setIcon(self.icons.save)
-        self.left_tab2_save_button.clicked.connect(self.save_parameters)
-        self.left_tab2_load_button = QPushButton("Load Parameters from File")
-        self.left_tab2_load_button.setIcon(self.icons.hard_drive)
-        self.left_tab2_load_button.clicked.connect(self.load_parameters)
-        self.left_tab2_send_image_button = QPushButton("Send Image")
-        self.left_tab2_send_image_button.setIcon(self.icons.image_upload)
-        self.left_tab2_send_image_button.clicked.connect(self.send_image)
+        self.left_tab2_reset_button = self.pushbutton_maker(
+            "Reset Parameters", self.icons.refresh, self.reset_parameters
+        )
 
-        self.left_tab2_reset_button.setDisabled(False)
-        self.left_tab2_send_button.setDisabled(False)
-        self.left_tab2_save_button.setDisabled(False)
-        self.left_tab2_load_button.setDisabled(False)
-        self.left_tab2_send_image_button.setDisabled(False)
+        self.left_tab2_send_button = self.pushbutton_maker(
+            "Send Parameters", self.icons.upload, self.send_parameters
+        )
+
+        self.left_tab2_save_button = self.pushbutton_maker(
+            "Save Parameters to File", self.icons.save, self.save_parameters
+        )
+
+        self.left_tab2_load_button = self.pushbutton_maker(
+            "Load Parameters from File", self.icons.hard_drive, self.load_parameters
+        )
+
+        self.left_tab2_send_image_button = self.pushbutton_maker(
+            "Send Image", self.icons.upload, self.send_image
+        )
 
         self.autopilot_param_control_layout.addWidget(self.left_tab2_reset_button)
         self.autopilot_param_control_layout.addWidget(self.left_tab2_send_button)
@@ -315,36 +323,43 @@ class GroundStationWidget(QWidget):
         self.right_tab1_table = QTableWidget()
         self.right_tab1_table.setMinimumWidth(self.right_width)
 
-        self.send_waypoints_button = QPushButton("Send Waypoints")
-        self.send_waypoints_button.setIcon(self.icons.upload)
-        self.send_waypoints_button.setMaximumWidth(self.right_width // 2)
-        self.send_waypoints_button.setMinimumHeight(50)
-        self.send_waypoints_button.clicked.connect(self.send_waypoints)
-        self.send_waypoints_button.setDisabled(True)
-        self.can_send_waypoints = False
+        self.can_send_waypoints = True
+        self.send_waypoints_button = self.pushbutton_maker(
+            "Send Waypoints",
+            self.icons.upload,
+            self.send_waypoints,
+            self.right_width // 2,
+            50,
+            self.can_send_waypoints,
+        )
 
-        self.clear_waypoints_button = QPushButton("Clear Waypoints")
-        self.clear_waypoints_button.setIcon(self.icons.delete)
-        self.clear_waypoints_button.setMaximumWidth(self.right_width // 2)
-        self.clear_waypoints_button.setMinimumHeight(50)
-        self.clear_waypoints_button.clicked.connect(self.clear_waypoints)
-        self.clear_waypoints_button.setDisabled(True)
         self.can_reset_waypoints = False
+        self.clear_waypoints_button = self.pushbutton_maker(
+            "Clear Waypoints",
+            self.icons.delete,
+            self.clear_waypoints,
+            self.right_width // 2,
+            50,
+            self.can_send_waypoints,
+        )
 
-        self.pull_waypoints_button = QPushButton("Pull Waypoints")
-        self.pull_waypoints_button.setIcon(self.icons.download)
-        self.pull_waypoints_button.setMaximumWidth(self.right_width // 2)
-        self.pull_waypoints_button.setMinimumHeight(50)
-        self.pull_waypoints_button.clicked.connect(self.pull_waypoints)
-        self.pull_waypoints_button.setDisabled(False)
         self.can_pull_waypoints = True
+        self.pull_waypoints_button = self.pushbutton_maker(
+            "Pull Waypoints",
+            self.icons.download,
+            self.pull_waypoints,
+            self.right_width // 2,
+            50,
+            self.can_pull_waypoints,
+        )
 
-        self.focus_boat_button = QPushButton("Zoom to Boat")
-        self.focus_boat_button.setIcon(self.icons.boat)
-        self.focus_boat_button.setMaximumWidth(self.right_width // 2)
-        self.focus_boat_button.setMinimumHeight(50)
-        self.focus_boat_button.clicked.connect(self.zoom_to_boat)
-        self.focus_boat_button.setDisabled(False)
+        self.focus_boat_button = self.pushbutton_maker(
+            "Zoom to Boat",
+            self.icons.boat,
+            self.zoom_to_boat,
+            self.right_width // 2,
+            50,
+        )
 
         self.right_tab1_layout.addWidget(self.right_tab1_label, 0, 0, 1, 2)
         self.right_tab1_layout.addWidget(self.right_tab1_table, 1, 0, 1, 2)
@@ -361,23 +376,29 @@ class GroundStationWidget(QWidget):
         self.right_tab2_table = QTableWidget()
         self.right_tab2_table.setMinimumWidth(self.right_width)
 
-        self.edit_buoy_data_button = QPushButton("Edit Buoy Data")
-        self.edit_buoy_data_button.setIcon(self.icons.edit)
-        self.edit_buoy_data_button.setMaximumWidth(self.right_width)
-        self.edit_buoy_data_button.setMinimumHeight(50)
-        self.edit_buoy_data_button.clicked.connect(self.edit_buoy_data)
+        self.edit_buoy_data_button = self.pushbutton_maker(
+            "Edit Buoy Data",
+            self.icons.edit,
+            self.edit_buoy_data,
+            self.right_width,
+            50,
+        )
 
-        self.save_buoy_data_button = QPushButton("Save Buoy Data")
-        self.save_buoy_data_button.setIcon(self.icons.save)
-        self.save_buoy_data_button.setMaximumWidth(self.right_width // 2)
-        self.save_buoy_data_button.setMinimumHeight(50)
-        self.save_buoy_data_button.clicked.connect(self.save_buoy_data)
+        self.save_buoy_data_button = self.pushbutton_maker(
+            "Save Buoy Data",
+            self.icons.save,
+            self.save_buoy_data,
+            self.right_width // 2,
+            50,
+        )
 
-        self.load_buoy_data_button = QPushButton("Load Buoy Data")
-        self.load_buoy_data_button.setIcon(self.icons.hard_drive)
-        self.load_buoy_data_button.setMaximumWidth(self.right_width // 2)
-        self.load_buoy_data_button.setMinimumHeight(50)
-        self.load_buoy_data_button.clicked.connect(self.load_buoy_data)
+        self.load_buoy_data_button = self.pushbutton_maker(
+            "Load Buoy Data",
+            self.icons.hard_drive,
+            self.load_buoy_data,
+            self.right_width // 2,
+            50,
+        )
 
         self.right_tab2_layout.addWidget(self.right_tab2_label, 0, 0, 1, 2)
         self.right_tab2_layout.addWidget(self.right_tab2_table, 1, 0, 1, 2)
@@ -386,6 +407,7 @@ class GroundStationWidget(QWidget):
         self.right_tab2_layout.addWidget(self.load_buoy_data_button, 3, 1)
         self.right_tab2.setLayout(self.right_tab2_layout)
         # endregion tab2: buoy data
+
         self.right_layout.addTab(self.right_tab1, "Waypoints")
         self.right_layout.addTab(self.right_tab2, "Buoy Data")
         self.right_layout.setMaximumWidth(self.right_width)
@@ -394,8 +416,6 @@ class GroundStationWidget(QWidget):
 
         self.setLayout(self.main_layout)
         # endregion setup UI
-
-        self.get_autopilot_parameters()
 
         self.telemetry_handler = thread_classes.TelemetryUpdater()
         self.js_waypoint_handler = thread_classes.WaypointFetcher()
@@ -434,8 +454,7 @@ class GroundStationWidget(QWidget):
                 requests.post(
                     constants.TELEMETRY_SERVER_ENDPOINTS["set_waypoints"],
                     json={"value": self.waypoints},
-                    timeout=5,
-                ).json()
+                )
                 js_code = "map.change_color_waypoints('red')"
                 self.browser.page().runJavaScript(js_code)
             except requests.exceptions.ConnectionError as e:
@@ -446,8 +465,7 @@ class GroundStationWidget(QWidget):
                 requests.post(
                     constants.TELEMETRY_SERVER_ENDPOINTS["waypoints_test"],
                     json={"value": self.waypoints},
-                    timeout=5,
-                ).json()
+                )
             except requests.exceptions.ConnectionError as e:
                 print(f"Connection error: {e}")
                 print(f"Waypoints: {self.waypoints}")
@@ -456,9 +474,8 @@ class GroundStationWidget(QWidget):
         """Pull waypoints from the telemetry server and add them to the map."""
 
         try:
-            remote_waypoints = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"],
-                timeout=5,
+            remote_waypoints: list[list[float]] = requests.get(
+                constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"]
             ).json()["current_route"]
             if remote_waypoints:
                 existing_waypoints = self.waypoints.copy()
@@ -484,9 +501,8 @@ class GroundStationWidget(QWidget):
         """Get autopilot parameters from the server."""
 
         try:
-            remote_params = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
-                timeout=5,
+            remote_params: dict = requests.get(
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"]
             ).json()
             if remote_params == {}:
                 print("Connection successful but no parameters found.")
@@ -526,7 +542,7 @@ class GroundStationWidget(QWidget):
             requests.post(
                 constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
                 json={"value": self.autopilot_parameters},
-            ).json()
+            )
         except ValueError or requests.exceptions.ConnectionError as e:
             print(f"Error: {e}")
             print(f"Parameters: {self.autopilot_parameters}")
@@ -561,7 +577,7 @@ class GroundStationWidget(QWidget):
             requests.post(
                 constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
                 json={"value": {parameter: self.autopilot_parameters[parameter]}},
-            ).json()
+            )
 
         except ValueError or requests.exceptions.ConnectionError as e:
             print(f"Error: {e}")
@@ -578,9 +594,8 @@ class GroundStationWidget(QWidget):
         """
 
         try:
-            existing_params = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"],
-                timeout=5,
+            existing_params: dict = requests.get(
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"]
             ).json()
             if existing_params == {}:
                 print("Connection successful but no parameters found.")
@@ -960,10 +975,15 @@ class GroundStationWidget(QWidget):
         self.waypoints = waypoints
         self.send_waypoints_button.setDisabled(not self.can_send_waypoints)
         self.clear_waypoints_button.setDisabled(not self.can_reset_waypoints)
-        if len(waypoints) != self.num_waypoints:
+        self.pull_waypoints_button.setDisabled(not self.can_pull_waypoints)
+        if self.num_waypoints != len(self.waypoints):
+            self.num_waypoints = len(self.waypoints)
+            if self.num_waypoints == 0:
+                self.can_pull_waypoints = True
+            else:
+                self.can_pull_waypoints = False
             self.can_send_waypoints = True
             self.can_reset_waypoints = True
-            self.num_waypoints = len(waypoints)
 
             self.right_tab1_table.clear()
             self.right_tab1_table.setRowCount(0)
@@ -1080,7 +1100,7 @@ class GroundStationWidget(QWidget):
             print(e)
             distance_to_next_waypoint = 0.0
 
-        if self.boat_data == []:
+        if self.boat_data == {}:
             telemetry_text = f"""Boat Info:
 Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
 State: {boat_data.get("state", "N/A")}
@@ -1162,7 +1182,7 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
     # region helper functions
     def autopilot_param_button_maker(self, action: str, param: str) -> QPushButton:
         """
-        Create a button for autopilot parameters.
+        Create a button for autopilot parameters. Wrapper for `self.pushbutton_maker`.
 
         Parameters
         ----------
@@ -1177,18 +1197,67 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
             The created button.
         """
 
-        button = QPushButton()
-        button.setMaximumWidth(25)
         if action == "send":
-            button.setIcon(self.icons.upload)
-            button.clicked.connect(partial(self.send_individual_parameter, param))
-            return button
+            return self.pushbutton_maker(
+                button_text="",
+                icon=self.icons.upload,
+                max_width=25,
+                min_height=None,
+                function=partial(self.send_individual_parameter, param),
+            )
         elif action == "reset":
-            button.setIcon(self.icons.delete)
-            button.clicked.connect(partial(self.reset_individual_parameter, param))
-            return button
+            return self.pushbutton_maker(
+                button_text="",
+                icon=self.icons.delete,
+                max_width=25,
+                min_height=None,
+                function=partial(self.reset_individual_parameter, param),
+            )
         else:
             raise ValueError("Invalid action. Use 'send' or 'reset'.")
+
+    def pushbutton_maker(
+        self,
+        button_text: str,
+        icon: QIcon,
+        function: callable,
+        max_width: Optional[int] = None,
+        min_height: Optional[int] = None,
+        is_clickable: bool = True,
+    ) -> QPushButton:
+        """
+        Create a QPushButton with the specified features.
+
+        Parameters
+        ----------
+        button_text
+            The text to display on the button.
+        icon
+            The icon to display on the button.
+        function
+            The function to connect to the button's clicked signal.
+        max_width
+            The maximum width of the button. If not specified, not used.
+        min_height
+            The minimum height of the button. If not specified, not used.
+        is_clickable
+            Whether the button should be clickable. Defaults to `True`.
+
+        Returns
+        -------
+        QPushButton
+            The created button.
+        """
+
+        button = QPushButton(button_text)
+        button.setIcon(icon)
+        if max_width is not None:
+            button.setMaximumWidth(max_width)
+        if min_height is not None:
+            button.setMinimumHeight(min_height)
+        button.clicked.connect(function)
+        button.setDisabled(not is_clickable)
+        return button
 
     def safe_convert_to_float(self, x) -> Union[float, Literal[0]]:
         """

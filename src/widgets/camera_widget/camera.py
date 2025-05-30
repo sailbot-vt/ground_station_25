@@ -29,6 +29,9 @@ class CameraWidget(QWidget):
         self.pause_button = QPushButton("Pause")
         self.pause_button.clicked.connect(self.pause_timer)
         self.is_paused = True
+        self.paused_icon_base64 = open(
+            constants.ASSETS_DIR / "paused-icon-base64.txt"
+        ).read()
         self.pause_button.setDisabled(not self.is_paused)
 
         self.run_button = QPushButton("Run")
@@ -60,6 +63,8 @@ class CameraWidget(QWidget):
         self.timer.start()
         self.is_running = True
         self.is_paused = False
+        self.run_button.setDisabled(self.is_running)
+        self.pause_button.setDisabled(self.is_paused)
         print("Unpaused camera feed timer.")
 
     def pause_timer(self) -> None:
@@ -68,6 +73,10 @@ class CameraWidget(QWidget):
         self.timer.stop()
         self.is_running = False
         self.is_paused = True
+        js_image_str = json.dumps(self.paused_icon_base64)
+        self.web_view.page().runJavaScript(f"setBase64Image({js_image_str});")
+        self.pause_button.setDisabled(self.is_paused)
+        self.run_button.setDisabled(self.is_running)
         print("Paused camera feed timer.")
 
     def update_camera_feed_starter(self) -> None:
