@@ -1,10 +1,12 @@
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QSyntaxHighlighter, QFontMetrics, QFontDatabase
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QTextEdit,
     QPushButton,
 )
+from typing import Optional
 
 
 class TextEditWindow(QWidget):
@@ -17,9 +19,19 @@ class TextEditWindow(QWidget):
 
     Parameters
     ----------
+    highlighter : `Optional[QSyntaxHighlighter]`
+        An optional syntax highlighter to apply to the text edit area.
+        If not provided, no syntax highlighting will be applied.
+
     initial_text : `str`
         The initial text to display in the text edit area.
         Default is an empty string.
+
+    tab_width : `int`
+        The width of a tab character in spaces. Default is 4.
+
+    font_size : `int`
+        The font size for the text edit area. Default is 14.
 
     Attributes
     -------
@@ -29,13 +41,34 @@ class TextEditWindow(QWidget):
 
     user_text_emitter = pyqtSignal(str)
 
-    def __init__(self, initial_text: str = ""):
+    def __init__(
+        self,
+        highlighter: Optional[QSyntaxHighlighter],
+        initial_text: str = "",
+        tab_width: int = 4,
+        font_size: int = 14,
+    ) -> None:
         super().__init__()
         layout = QVBoxLayout()
 
         self.init_text = initial_text
         self.text_edit = QTextEdit()
         self.text_edit.setPlainText(self.init_text)
+
+        # have to use monospace font so that tab width is consistent
+        self.font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+
+        self.font_size = font_size
+        self.update_font()
+
+        self.tab_width = tab_width
+        self.update_tab_stop()
+
+        if highlighter is not None:
+            if issubclass(highlighter, QSyntaxHighlighter):
+                self.highlighter = highlighter(self.text_edit.document())
+            else:
+                raise TypeError("Highlighter must be a subclass of QSyntaxHighlighter")
 
         self.current_text = initial_text
         self.save_button = QPushButton("Save (not to file)")
@@ -45,14 +78,22 @@ class TextEditWindow(QWidget):
         layout.addWidget(self.save_button)
         self.setLayout(layout)
 
-    def save(self):
-        """Copy the current text from the text edit area to the `self.current_text` attribute."""
+    def update_font(self) -> None:
+        """Set a larger font size while preserving other font properties"""
+        self.font.setPointSize(self.font_size)
+        self.text_edit.setFont(self.font)
 
+    def update_tab_stop(self) -> None:
+        """Update tab stop distance based on current font and tab width"""
+        font_metrics = QFontMetrics(self.text_edit.font())
+        space_width = font_metrics.horizontalAdvance(" ")
+        tab_stop = self.tab_width * space_width
+        self.text_edit.setTabStopDistance(tab_stop)
+
+    def save(self) -> None:
         entered_text = self.text_edit.toPlainText()
         self.current_text = entered_text
 
-    def closeEvent(self, event):
-        """Emit the entered text when the window is closed."""
-
+    def closeEvent(self, event) -> None:
         self.user_text_emitter.emit(self.current_text)
         event.accept()

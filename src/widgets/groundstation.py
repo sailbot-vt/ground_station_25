@@ -8,8 +8,9 @@ import geopy
 import geopy.distance
 
 import constants
-from icons import get_icons
 import thread_classes
+from icons import get_icons
+from syntax_highlighters.json import JsonHighlighter
 from widgets.popup_edit import TextEditWindow
 
 from functools import partial
@@ -749,7 +750,9 @@ class GroundStationWidget(QWidget):
 
         try:
             initial_config = json.dumps(self.telemetry_data_limits, indent=4)
-            self.text_edit_window = TextEditWindow(initial_text=initial_config)
+            self.text_edit_window = TextEditWindow(
+                highlighter=JsonHighlighter, initial_text=initial_config
+            )
             self.text_edit_window.setWindowTitle("Edit Boat Data Limits")
             self.text_edit_window.user_text_emitter.connect(
                 self.edit_boat_data_limits_callback
@@ -830,7 +833,9 @@ class GroundStationWidget(QWidget):
 
         try:
             buoy_json = json.dumps(self.buoys, indent=4)
-            self.text_edit_window = TextEditWindow(initial_text=buoy_json)
+            self.text_edit_window = TextEditWindow(
+                highlighter=JsonHighlighter, initial_text=buoy_json
+            )
             self.text_edit_window.setWindowTitle("Edit Buoy GPS Coordinates")
             self.text_edit_window.user_text_emitter.connect(
                 self.edit_buoy_data_callback
