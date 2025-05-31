@@ -1187,7 +1187,7 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
     # region helper functions
     def autopilot_param_button_maker(self, action: str, param: str) -> QPushButton:
         """
-        Create a button for autopilot parameters. Wrapper for `self.pushbutton_maker`.
+        Create a `QPushButton` for autopilot parameters. Wrapper for `self.pushbutton_maker`.
 
         Parameters
         ----------
@@ -1231,7 +1231,7 @@ Motor Temperature: {fix_formatting(self.boat_data_averages.get("vesc_data_motor_
         is_clickable: bool = True,
     ) -> QPushButton:
         """
-        Create a QPushButton with the specified features.
+        Create a `QPushButton` with the specified features.
 
         Parameters
         ----------

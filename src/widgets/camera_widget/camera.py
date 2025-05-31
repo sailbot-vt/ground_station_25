@@ -13,11 +13,6 @@ class CameraWidget(QWidget):
     Inherits
     -------
     `QWidget`
-
-    Attributes
-    ----------
-    web_view : `QWebEngineView`
-        The web view used to display the camera feed.
     """
 
     def __init__(self) -> None:
