@@ -476,8 +476,8 @@ class GroundStationWidget(QWidget):
 
         try:
             remote_waypoints: list[list[float]] = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["get_waypoints"]
-            ).json()
+                constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"]
+            ).json()["current_route"]
             if remote_waypoints:
                 existing_waypoints = self.waypoints.copy()
                 self.browser.page().runJavaScript("map.clear_waypoints()")
@@ -1046,8 +1046,8 @@ class GroundStationWidget(QWidget):
         self,
         boat_data: dict[
             str, Union[float, str, tuple[float, float], list[tuple[float, float]]]
-        ]
-) -> None:
+        ],
+    ) -> None:
         """
         Update telemetry display with boat data.
 
@@ -1106,14 +1106,32 @@ class GroundStationWidget(QWidget):
 
             return ms * 1000
 
-        try:
-            current_position = boat_data.get("position")
-            index = boat_data.get("current_waypoint_index", "N/A")
-            distance_to_next_waypoint = boat_data.get("distance_to_next_waypoint", 0.)
-            
-        except Exception as e:
-            print(e)
-            distance_to_next_waypoint = 0.0
+        def get_distance_to_waypoint(
+            curr_position: list[float], next_waypoint: list[float]
+        ) -> Optional[float]:
+            """
+            Calculates the distance to the next waypoint from the current position using `geopy`.
+
+            Parameters
+            ----------
+            curr_position
+                The current position of the boat as a list of latitude and longitude.
+
+            next_waypoint
+                The next waypoint as a list of latitude and longitude.
+
+            Returns
+            -------
+            float
+                The distance to the next waypoint in meters, or `None` if an error occurs.
+            """
+
+            try:
+                return geopy.distance.geodesic(next_waypoint, curr_position).m
+
+            except Exception as e:
+                print(f"Error calculating distance to waypoint: {e}")
+                return None
 
         if self.boat_data == {}:
             if boat_data.get("state") == "failed_to_fetch":
@@ -1147,6 +1165,7 @@ Apparent Wind Angle: {boat_data.get("apparent_wind_angle", -69.420):.5f}°
 Sail Angle: {boat_data.get("sail_angle", -69.420):.5f}°
 Rudder Angle: {boat_data.get("rudder_angle", -69.420):.5f}°
 Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
+Current Route: {boat_data.get("current_route", "N/A")}
 
 VESC Data:
 RPM: {fix_formatting(boat_data.get("vesc_data_rpm"))}
@@ -1219,6 +1238,7 @@ Apparent Wind Angle: {boat_data.get("apparent_wind_angle", -69.420):.5f}°
 Sail Angle: {boat_data.get("sail_angle", -69.420):.5f}°
 Rudder Angle: {boat_data.get("rudder_angle", -69.420):.5f}°
 Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
+Current Route: {boat_data.get("current_route", "N/A")}
 
 VESC Data:
 RPM: {fix_formatting(self.boat_data_averages.get("vesc_data_rpm"))}
