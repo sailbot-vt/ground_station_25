@@ -9,7 +9,7 @@ class TelemetryUpdater(QThread):
     Thread to fetch telemetry data from the telemetry server.
 
     Inherits
-    -------
+    --------
     `QThread`
 
     Attributes
@@ -27,16 +27,14 @@ class TelemetryUpdater(QThread):
         """Fetch boat data from the telemetry server and emit it."""
 
         try:
-            boat_status: dict[
-                str, Union[str, float, list[float], list[tuple[float, float]]]
-            ]
+            boat_status: dict[str, Union[str, float, list[float], list[list[float]]]]
             boat_status = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"], timeout=5
+                constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"]
             ).json()
-        except requests.RequestException:
+        except requests.exceptions.RequestException:
             boat_status = {
                 "position": [36.983731367697374, -76.29555376681454],
-                "state": "N/A",
+                "state": "failed_to_fetch",
                 "full_autonomy_maneuver": "N/A",
                 "speed": 0.0,
                 "bearing": 0.0,
@@ -48,7 +46,7 @@ class TelemetryUpdater(QThread):
                 "sail_angle": 0.0,
                 "rudder_angle": 0.0,
                 "current_waypoint_index": 0,
-                "current_route": [(0.0, 0.0)],
+                "current_route": [[0.0, 0.0]],
                 "vesc_data_rpm": 0.0,
                 "vesc_data_duty_cycle": 0.0,
                 "vesc_data_amp_hours": 0.0,
@@ -92,7 +90,7 @@ class WaypointFetcher(QThread):
 
         try:
             waypoints = requests.get(constants.WAYPOINTS_SERVER_URL).json()
-        except requests.RequestException:
+        except requests.exceptions.RequestException:
             waypoints = []
             print("Failed to fetch waypoints. Using empty list.")
         self.waypoints_fetched.emit(waypoints)
@@ -127,10 +125,8 @@ class ImageFetcher(QThread):
                 timeout=5,
             ).json()
             base64_encoded_image = image_data.get("current_camera_image")
-            if base64_encoded_image is None:
-                raise requests.RequestException("No image found in response.")
 
-        except requests.RequestException:
+        except requests.exceptions.RequestException:
             base64_encoded_image = open(
                 constants.ASSETS_DIR / "cool-guy-base64.txt"
             ).read()

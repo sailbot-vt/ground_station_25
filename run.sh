@@ -1,10 +1,24 @@
 #!/usr/bin/env bash
 
+# Check for Go installation
+if ! command -v go &> /dev/null; then
+    echo "Go is not installed. Please install Go to run this script."
+    exit 1
+fi
+
+# Check for Python installation
+if ! command -v python3 &> /dev/null; then
+    echo "Python 3 is not installed. Please install Python 3 to run this script."
+    exit 1
+fi
+
+local_go=$(which go)
+local_python=$(which python3)
+
 if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     export QT_XCB_GL_INTEGRATION=none
     export XDG_SESSION_TYPE=x11
     export QT_QPA_PLATFORM=xcb
-    alias python=python3
 fi
 
 mkdir -p bin
@@ -14,15 +28,10 @@ if [ -f "bin/server" ]; then
     # if last_build_time is older than 1 hour
     if [ $(($(date +%s) - last_build_time)) -gt 3600 ]; then
         echo "Server binary out of date. Rebuilding..."
-        # Check if Go is on the PATH
-        if ! command -v go &> /dev/null; then
-            echo "Go is not installed. Please install Go to run this script."
-            exit 1
-        fi
-        go mod tidy
-        go build -o bin/server src/web_engine/server.go
+        $local_go mod tidy
+        $local_go build -o bin/server src/web_engine/server.go
         if [ $? -ne 0 ]; then
-            echo "Failed to build the Go server. Please check your Go installation."
+            echo "Failed to build the Go server."
             exit 1
         else
             echo "Go server built successfully."
@@ -33,15 +42,10 @@ if [ -f "bin/server" ]; then
     fi
 else
     echo "Server binary not found. Building..."
-    # Check if Go is on the PATH
-    if ! command -v go &> /dev/null; then
-        echo "Go is not installed. Please install Go to run this script."
-        exit 1
-    fi
-    go mod tidy
-    go build -o bin/server src/web_engine/server.go
+    $local_go mod tidy
+    $local_go build -o bin/server src/web_engine/server.go
     if [ $? -ne 0 ]; then
-        echo "Failed to build the Go server. Please check your Go installation."
+        echo "Failed to build the Go server."
         exit 1
     else
         echo "Go server built successfully."
@@ -54,7 +58,7 @@ bin/server &
 GO_PID=$!
 
 # Start Python script in the background
-python3 src/main.py &
+$local_python src/main.py &
 PYTHON_PID=$!
 
 # Trap Ctrl+C and kill both processes

@@ -458,8 +458,8 @@ class GroundStationWidget(QWidget):
                 )
                 js_code = "map.change_color_waypoints('red')"
                 self.browser.page().runJavaScript(js_code)
-            except requests.exceptions.ConnectionError as e:
-                print(f"Connection error: {e}")
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to send waypoints: {e}")
                 print(f"Waypoints: {self.waypoints}")
         else:
             try:
@@ -467,8 +467,8 @@ class GroundStationWidget(QWidget):
                     constants.TELEMETRY_SERVER_ENDPOINTS["waypoints_test"],
                     json={"value": self.waypoints},
                 )
-            except requests.exceptions.ConnectionError as e:
-                print(f"Connection error: {e}")
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to send waypoints: {e}")
                 print(f"Waypoints: {self.waypoints}")
 
     def pull_waypoints(self) -> None:
@@ -495,8 +495,10 @@ class GroundStationWidget(QWidget):
             self.can_pull_waypoints = False
             self.pull_waypoints_button.setDisabled(not self.can_pull_waypoints)
 
-        except requests.exceptions.ConnectionError as e:
-            print(f"Connection error: {e}")
+        except KeyError:
+            print("No waypoints found in the response from the server.")
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to pull waypoints: {e}")
 
     def get_autopilot_parameters(self) -> None:
         """Get autopilot parameters from the server."""
@@ -505,8 +507,10 @@ class GroundStationWidget(QWidget):
             remote_params: dict = requests.get(
                 constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"]
             ).json()
+
             if remote_params == {}:
                 print("Connection successful but no parameters found.")
+
             else:
                 self.autopilot_parameters = remote_params
                 self.forced_jibe_checkbox.setChecked(
@@ -524,8 +528,12 @@ class GroundStationWidget(QWidget):
                 self.tack_distance_text_box.setText(
                     str(self.autopilot_parameters["tack_distance"])
                 )
-        except requests.exceptions.ConnectionError as e:
-            print(f"Connection error: {e}")
+
+        except KeyError:
+            print("No autopilot parameters found in the response from the server.")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to pull autopilot parameters: {e}")
 
     def send_parameters(self) -> None:
         """Send all autopilot parameters to the server."""
@@ -540,12 +548,17 @@ class GroundStationWidget(QWidget):
                 ),
                 "tack_distance": float(self.tack_distance_text_box.text()),
             }
+
             requests.post(
                 constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
                 json={"value": self.autopilot_parameters},
             )
-        except ValueError or requests.exceptions.ConnectionError as e:
-            print(f"Error: {e}")
+
+        except ValueError as e:
+            print(f"Failed with getting autopilot parameters: {e}")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to send autopilot parameters: {e}")
             print(f"Parameters: {self.autopilot_parameters}")
 
     def send_individual_parameter(self, parameter: str) -> None:
@@ -559,29 +572,27 @@ class GroundStationWidget(QWidget):
         """
 
         try:
-            self.autopilot_parameters = {
-                "perform_forced_jibe_instead_of_tack": self.forced_jibe_checkbox.isChecked(),
-                "waypoint_accuracy": self.safe_convert_to_float(
-                    self.waypoint_accuracy_text_box.text()
-                ),
-                "no_sail_zone_size": self.safe_convert_to_float(
-                    self.no_sail_zone_size_text_box.text()
-                ),
-                "autopilot_refresh_rate": self.safe_convert_to_float(
-                    self.autopilot_refresh_rate_text_box.text()
-                ),
-                "tack_distance": self.safe_convert_to_float(
-                    self.tack_distance_text_box.text()
-                ),
-            }
+            existing_params: dict = requests.get(
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"]
+            ).json()
 
-            requests.post(
-                constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
-                json={"value": {parameter: self.autopilot_parameters[parameter]}},
-            )
+            if existing_params == {}:
+                print(
+                    "Connection successful but no parameters found. Not sending anything since there is nothing to replace."
+                )
 
-        except ValueError or requests.exceptions.ConnectionError as e:
-            print(f"Error: {e}")
+            else:
+                existing_params[parameter] = self.autopilot_parameters[parameter]
+                requests.post(
+                    constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
+                    json={"value": existing_params},
+                )
+
+        except KeyError:
+            print(f"Parameter '{parameter}' not found in autopilot parameters.")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to connect: {e}")
             print(f"Inputed parameter: {parameter}")
 
     def reset_individual_parameter(self, parameter: str) -> None:
@@ -598,8 +609,12 @@ class GroundStationWidget(QWidget):
             existing_params: dict = requests.get(
                 constants.TELEMETRY_SERVER_ENDPOINTS["get_autopilot_parameters"]
             ).json()
+
             if existing_params == {}:
-                print("Connection successful but no parameters found.")
+                print(
+                    "Connection successful but no parameters found. Not resetting anything since there is nothing to reset."
+                )
+
             else:
                 self.autopilot_parameters[parameter] = existing_params[parameter]
                 self.forced_jibe_checkbox.setChecked(
@@ -617,8 +632,12 @@ class GroundStationWidget(QWidget):
                 self.tack_distance_text_box.setText(
                     str(self.autopilot_parameters["tack_distance"])
                 )
-        except ValueError or requests.exceptions.ConnectionError as e:
-            print(f"Error: {e}")
+
+        except KeyError:
+            print(f"Parameter '{parameter}' not found in autopilot parameters.")
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to connect: {e}")
             print(f"Inputed parameter: {parameter}")
 
     def save_parameters(self) -> None:
@@ -646,7 +665,7 @@ class GroundStationWidget(QWidget):
             with open(file_path, "w") as f:
                 json.dump(self.autopilot_parameters, f, indent=4)
 
-        except ValueError as e:
+        except Exception as e:
             print(f"Error: {e}")
             print(f"Parameters: {self.autopilot_parameters}")
 
@@ -669,10 +688,12 @@ class GroundStationWidget(QWidget):
                     constants.AUTO_PILOT_PARAMS_DIR.as_posix(),
                     "*.json",
                 )
+
                 if chosen_file == ("", ""):
                     chosen_file = [
                         PurePath(constants.AUTO_PILOT_PARAMS_DIR / max(param_files))
                     ]
+
                 with open(chosen_file[0], "r") as f:
                     self.autopilot_parameters = json.load(f)
                     self.forced_jibe_checkbox.setChecked(
@@ -690,8 +711,10 @@ class GroundStationWidget(QWidget):
                     self.tack_distance_text_box.setText(
                         str(self.autopilot_parameters["tack_distance"])
                     )
-        except FileNotFoundError as e:
-            print(e)
+
+        except Exception as e:
+            print(f"Error: {e}")
+            print(f"Parameters: {self.autopilot_parameters}")
 
     def send_image(self) -> None:
         """
@@ -712,7 +735,7 @@ class GroundStationWidget(QWidget):
                 constants.TELEMETRY_SERVER_ENDPOINTS["set_autopilot_parameters"],
                 json={"value": autopilot_parameters},
             ).json()
-        except requests.exceptions.ConnectionError as e:
+        except requests.exceptions.RequestException as e:
             print(f"Connection error: {e}")
         except FileNotFoundError as e:
             print(f"File not found: {e}")
@@ -736,6 +759,7 @@ class GroundStationWidget(QWidget):
             )
             with open(file_path, "w") as f:
                 json.dump(self.boat_data, f, indent=4)
+
         except Exception as e:
             print(f"Error: {e}")
 
@@ -758,6 +782,7 @@ class GroundStationWidget(QWidget):
                 self.edit_boat_data_limits_callback
             )
             self.text_edit_window.show()
+
         except Exception as e:
             print(f"Error: {e}")
 
@@ -777,6 +802,7 @@ class GroundStationWidget(QWidget):
         try:
             edited_config = text
             self.telemetry_data_limits = json.loads(edited_config)
+
         except Exception as e:
             print(f"Error: {e}")
 
@@ -801,8 +827,9 @@ class GroundStationWidget(QWidget):
                 ]
             with open(chosen_file[0], "r") as f:
                 self.telemetry_data_limits = json.load(f)
-        except FileNotFoundError as e:
-            print(e)
+
+        except Exception as e:
+            print(f"Error: {e}")
 
     def save_boat_data_limits(self) -> None:
         """
@@ -819,6 +846,7 @@ class GroundStationWidget(QWidget):
             )
             with open(file_path, "w") as f:
                 json.dump(self.telemetry_data_limits, f, indent=4)
+
         except Exception as e:
             print(f"Error: {e}")
 
@@ -841,6 +869,7 @@ class GroundStationWidget(QWidget):
                 self.edit_buoy_data_callback
             )
             self.text_edit_window.show()
+
         except Exception as e:
             print(f"Error: {e}")
 
@@ -904,6 +933,7 @@ class GroundStationWidget(QWidget):
             )
             with open(file_path, "w") as f:
                 json.dump(self.buoys, f, indent=4)
+
         except Exception as e:
             print(f"Error: {e}")
 
@@ -919,6 +949,7 @@ class GroundStationWidget(QWidget):
             buoy_files = os.listdir(constants.BUOY_DATA_DIR)
             if not buoy_files:
                 print("No buoy data files found.")
+
             else:
                 chosen_file = QFileDialog.getOpenFileName(
                     self,
@@ -928,11 +959,14 @@ class GroundStationWidget(QWidget):
                 )
                 if chosen_file == ("", ""):
                     chosen_file = [PurePath(constants.BUOY_DATA_DIR / "default.json")]
+
                 with open(chosen_file[0], "r") as f:
                     self.buoys = json.load(f)
+
                 self.update_buoy_table()
-        except FileNotFoundError as e:
-            print(e)
+
+        except Exception as e:
+            print(f"Error: {e}")
 
     def clear_waypoints(self) -> None:
         """Clear waypoints from the table."""
@@ -949,6 +983,7 @@ class GroundStationWidget(QWidget):
         if isinstance(self.boat_data.get("position"), list):
             js_code = "map.focus_map_on_boat()"
             self.browser.page().runJavaScript(js_code)
+
         else:
             print("Boat position not available.")
 
@@ -985,10 +1020,11 @@ class GroundStationWidget(QWidget):
             self.num_waypoints = len(self.waypoints)
             if self.num_waypoints == 0:
                 self.can_pull_waypoints = True
+                self.can_reset_waypoints = False
             else:
                 self.can_pull_waypoints = False
+                self.can_reset_waypoints = True
             self.can_send_waypoints = True
-            self.can_reset_waypoints = True
 
             self.right_tab1_table.clear()
             self.right_tab1_table.setRowCount(0)
@@ -1071,46 +1107,55 @@ class GroundStationWidget(QWidget):
             return ms * 1000
 
         def get_distance_to_waypoint(
-            cur_position: list[float, float], next_waypoint: list[float, float]
-        ) -> float:
+            curr_position: list[float], next_waypoint: list[float]
+        ) -> Optional[float]:
             """
-            Calculates the distance to the next waypoint from the current position using geopy.
+            Calculates the distance to the next waypoint from the current position using `geopy`.
 
             Parameters
             ----------
-            cur_position
+            curr_position
                 The current position of the boat as a list of latitude and longitude.
+
             next_waypoint
                 The next waypoint as a list of latitude and longitude.
 
             Returns
             -------
             float
-                The distance to the next waypoint in meters.
+                The distance to the next waypoint in meters, or `None` if an error occurs.
             """
 
-            if next_waypoint:
-                return geopy.distance.geodesic(next_waypoint, cur_position).m
-            else:
-                return geopy.distance.Distance(0.0).m
+            try:
+                return geopy.distance.geodesic(next_waypoint, curr_position).m
 
-        try:
-            current_position = boat_data.get("position")
-            waypoint_route = boat_data.get("current_route", [])
-            index = boat_data.get("current_waypoint_index", "N/A")
-            distance_to_next_waypoint = get_distance_to_waypoint(
-                current_position, waypoint_route[index]
-            )
-        except Exception as e:
-            print(e)
-            distance_to_next_waypoint = 0.0
+            except Exception as e:
+                print(f"Error calculating distance to waypoint: {e}")
+                return None
 
         if self.boat_data == {}:
+            if boat_data.get("state") == "failed_to_fetch":
+                distance_to_next_waypoint = None
+
+            else:
+                waypoints = boat_data.get("current_route", [])
+                if len(waypoints) == 0:
+                    print(f"No waypoints available. Waypoints: {waypoints}")
+                    distance_to_next_waypoint = None
+                else:
+                    index = boat_data.get("current_waypoint_index")
+                    curr_position = boat_data.get("position")
+                    distance_to_next_waypoint = get_distance_to_waypoint(
+                        curr_position, waypoints[index]
+                    )
+                    if distance_to_next_waypoint is None:
+                        print("Error calculating distance to next waypoint.")
+
             telemetry_text = f"""Boat Info:
 Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", -69.420):.5f} knots
-Distance To Next WP: {distance_to_next_waypoint:.5f} meters
+Distance To Next WP: {fix_formatting(distance_to_next_waypoint)} meters
 Bearing: {boat_data.get("bearing", -69.420):.5f}°
 Heading: {boat_data.get("heading", -69.420):.5f}°
 True Wind Speed: {boat_data.get("true_wind_speed", -69.420):.5f} knots
@@ -1134,6 +1179,38 @@ Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since
 Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature"))}°C
 """
         else:
+            if boat_data.get("state") == "failed_to_fetch":
+                print("Failed to fetch boat data, trying previous data.")
+                if self.boat_data.get("state") == "failed_to_fetch":
+                    print("Failed to fetch boat data again.")
+                    distance_to_next_waypoint = None
+                else:
+                    waypoints = self.boat_data.get("current_route", [])
+                    if len(waypoints) == 0:
+                        print(f"No waypoints available. Waypoints: {waypoints}")
+                        distance_to_next_waypoint = None
+                    else:
+                        index = self.boat_data.get("current_waypoint_index")
+                        curr_position = self.boat_data.get("position")
+                        distance_to_next_waypoint = get_distance_to_waypoint(
+                            curr_position, waypoints[index]
+                        )
+                        if distance_to_next_waypoint is None:
+                            print("Error calculating distance to next waypoint.")
+            else:
+                waypoints = boat_data.get("current_route", [])
+                if len(waypoints) == 0:
+                    print(f"No waypoints available. Waypoints: {waypoints}")
+                    distance_to_next_waypoint = None
+                else:
+                    index = boat_data.get("current_waypoint_index")
+                    curr_position = boat_data.get("position")
+                    distance_to_next_waypoint = get_distance_to_waypoint(
+                        curr_position, waypoints[index]
+                    )
+                    if distance_to_next_waypoint is None:
+                        print("Error calculating distance to next waypoint.")
+
             for key in self.boat_data_averages.keys():
                 # self.boat_data = data from one iteration in the past
                 # boat_data = data from the current iteration
@@ -1147,7 +1224,7 @@ Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature"))
 Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", -69.420):.5f} knots
-Distance To Next WP: {distance_to_next_waypoint:.5f} meters
+Distance To Next WP: {fix_formatting(distance_to_next_waypoint)} meters
 Bearing: {boat_data.get("bearing", -69.420):.5f}°
 Heading: {boat_data.get("heading", -69.420):.5f}°
 True Wind Speed: {boat_data.get("true_wind_speed", -69.420):.5f} knots
