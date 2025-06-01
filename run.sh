@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    export QT_XCB_GL_INTEGRATION=none
+    export XDG_SESSION_TYPE=x11
+    export QT_QPA_PLATFORM=xcb
+fi
+
 # Check for Go installation
 if ! command -v go &> /dev/null; then
     echo "Go is not installed. Please install Go to run this script."
@@ -14,12 +20,6 @@ fi
 
 local_go=$(which go)
 local_python=$(which python3)
-
-if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    export QT_XCB_GL_INTEGRATION=none
-    export XDG_SESSION_TYPE=x11
-    export QT_QPA_PLATFORM=xcb
-fi
 
 mkdir -p bin
 
