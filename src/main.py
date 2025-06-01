@@ -1,6 +1,7 @@
 import sys
 from widgets.groundstation import GroundStationWidget
 from widgets.camera_widget.camera import CameraWidget
+from widgets.console_output import ConsoleOutputWidget
 from icons import get_icons
 import constants
 
@@ -25,6 +26,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
         self.main_widget.addTab(GroundStationWidget(), "Ground Station")
         self.main_widget.addTab(CameraWidget(), "Camera Feed")
+        self.main_widget.addTab(ConsoleOutputWidget(), "Console Output")
         self.main_widget.setCurrentIndex(0)
 
 

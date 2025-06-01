@@ -2,6 +2,15 @@ import os
 import sys
 from pathlib import PurePath
 from PyQt5.QtCore import QRect, QTimer
+from PyQt5.QtGui import QColor
+
+# colors (monokai pro color scheme)
+YELLOW = QColor("#ffd866")
+PURPLE = QColor("#ab9df2")
+BLUE = QColor("#78dce8")
+WHITE = QColor("#f8f8f2")
+RED = QColor("#f76c7c")
+GREY = QColor("#82878b")
 
 # window dimensions
 WINDOW_BOX = QRect(100, 100, 800, 600)

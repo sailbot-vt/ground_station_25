@@ -459,7 +459,7 @@ class GroundStationWidget(QWidget):
                 js_code = "map.change_color_waypoints('red')"
                 self.browser.page().runJavaScript(js_code)
             except requests.exceptions.RequestException as e:
-                print(f"Failed to send waypoints: {e}")
+                print(f"Warning: Failed to send waypoints: {e}")
                 print(f"Waypoints: {self.waypoints}")
         else:
             try:
@@ -468,7 +468,7 @@ class GroundStationWidget(QWidget):
                     json={"value": self.waypoints},
                 )
             except requests.exceptions.RequestException as e:
-                print(f"Failed to send waypoints: {e}")
+                print(f"Warning: Failed to send waypoints: {e}")
                 print(f"Waypoints: {self.waypoints}")
 
     def pull_waypoints(self) -> None:
@@ -498,7 +498,7 @@ class GroundStationWidget(QWidget):
         except KeyError:
             print("No waypoints found in the response from the server.")
         except requests.exceptions.RequestException as e:
-            print(f"Failed to pull waypoints: {e}")
+            print(f"Warning: Failed to pull waypoints: {e}")
 
     def get_autopilot_parameters(self) -> None:
         """Get autopilot parameters from the server."""
@@ -533,7 +533,7 @@ class GroundStationWidget(QWidget):
             print("No autopilot parameters found in the response from the server.")
 
         except requests.exceptions.RequestException as e:
-            print(f"Failed to pull autopilot parameters: {e}")
+            print(f"Warning: Failed to pull autopilot parameters: {e}")
 
     def send_parameters(self) -> None:
         """Send all autopilot parameters to the server."""
@@ -558,7 +558,7 @@ class GroundStationWidget(QWidget):
             print(f"Failed with getting autopilot parameters: {e}")
 
         except requests.exceptions.RequestException as e:
-            print(f"Failed to send autopilot parameters: {e}")
+            print(f"Warning: Failed to send autopilot parameters: {e}")
             print(f"Parameters: {self.autopilot_parameters}")
 
     def send_individual_parameter(self, parameter: str) -> None:
@@ -592,7 +592,7 @@ class GroundStationWidget(QWidget):
             print(f"Parameter '{parameter}' not found in autopilot parameters.")
 
         except requests.exceptions.RequestException as e:
-            print(f"Failed to connect: {e}")
+            print(f"Warning: Failed to connect: {e}")
             print(f"Inputed parameter: {parameter}")
 
     def reset_individual_parameter(self, parameter: str) -> None:
@@ -637,7 +637,7 @@ class GroundStationWidget(QWidget):
             print(f"Parameter '{parameter}' not found in autopilot parameters.")
 
         except requests.exceptions.RequestException as e:
-            print(f"Failed to connect: {e}")
+            print(f"Warning: Failed to connect: {e}")
             print(f"Inputed parameter: {parameter}")
 
     def save_parameters(self) -> None:
@@ -985,7 +985,7 @@ class GroundStationWidget(QWidget):
             self.browser.page().runJavaScript(js_code)
 
         else:
-            print("Boat position not available.")
+            print("Warning: Boat position not available.")
 
     # endregion button functions
 
