@@ -58,7 +58,7 @@ class TelemetryUpdater(QThread):
                 "vesc_data_time_since_vesc_startup_in_ms": 0.0,
                 "vesc_data_motor_temperature": 0.0,
             }
-            print("Failed to fetch boat data. Using default values.")
+            print("Warning: Failed to fetch boat data. Using default values.")
         self.boat_data_fetched.emit(boat_status)
 
     def run(self) -> None:
@@ -92,7 +92,7 @@ class WaypointFetcher(QThread):
             waypoints = requests.get(constants.WAYPOINTS_SERVER_URL).json()
         except requests.exceptions.RequestException:
             waypoints = []
-            print("Failed to fetch waypoints. Using empty list.")
+            print("Warning: Failed to fetch waypoints. Using empty list.")
         self.waypoints_fetched.emit(waypoints)
 
     def run(self) -> None:
@@ -130,7 +130,7 @@ class ImageFetcher(QThread):
             base64_encoded_image = open(
                 constants.ASSETS_DIR / "cool-guy-base64.txt"
             ).read()
-            print("Failed to fetch image. Using cool guy image.")
+            print("Warning: Failed to fetch image. Using cool guy image.")
 
         self.image_fetched.emit(base64_encoded_image)
 
