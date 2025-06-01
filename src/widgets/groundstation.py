@@ -1107,34 +1107,15 @@ class GroundStationWidget(QWidget):
             return ms * 1000
 
         try:
-            current_position = boat_data.get("position")
-            index = boat_data.get("current_waypoint_index", "N/A")
             distance_to_next_waypoint = boat_data.get("distance_to_next_waypoint", 0.)
             
         except Exception as e:
             print(e)
             distance_to_next_waypoint = 0.0
-
-        if self.boat_data == {}:
-            if boat_data.get("state") == "failed_to_fetch":
-                distance_to_next_waypoint = None
-
-            else:
-                waypoints = boat_data.get("current_route", [])
-                if len(waypoints) == 0:
-                    print(f"No waypoints available. Waypoints: {waypoints}")
-                    distance_to_next_waypoint = None
-                else:
-                    index = boat_data.get("current_waypoint_index")
-                    curr_position = boat_data.get("position")
-                    distance_to_next_waypoint = get_distance_to_waypoint(
-                        curr_position, waypoints[index]
-                    )
-                    if distance_to_next_waypoint is None:
-                        print("Error calculating distance to next waypoint.")
+            
 
             telemetry_text = f"""Boat Info:
-Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
+Position: {boat_data.get("position", [-69.420, -69.420])[0]:.8f}, {boat_data.get("position", [-69.420, -69.420])[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", -69.420):.5f} knots
 Distance To Next WP: {fix_formatting(distance_to_next_waypoint)} meters
@@ -1160,38 +1141,7 @@ Time Since VESC Startup: {convert_to_seconds(boat_data.get("vesc_data_time_since
 Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature"))}°C
 """
         else:
-            if boat_data.get("state") == "failed_to_fetch":
-                print("Failed to fetch boat data, trying previous data.")
-                if self.boat_data.get("state") == "failed_to_fetch":
-                    print("Failed to fetch boat data again.")
-                    distance_to_next_waypoint = None
-                else:
-                    waypoints = self.boat_data.get("current_route", [])
-                    if len(waypoints) == 0:
-                        print(f"No waypoints available. Waypoints: {waypoints}")
-                        distance_to_next_waypoint = None
-                    else:
-                        index = self.boat_data.get("current_waypoint_index")
-                        curr_position = self.boat_data.get("position")
-                        distance_to_next_waypoint = get_distance_to_waypoint(
-                            curr_position, waypoints[index]
-                        )
-                        if distance_to_next_waypoint is None:
-                            print("Error calculating distance to next waypoint.")
-            else:
-                waypoints = boat_data.get("current_route", [])
-                if len(waypoints) == 0:
-                    print(f"No waypoints available. Waypoints: {waypoints}")
-                    distance_to_next_waypoint = None
-                else:
-                    index = boat_data.get("current_waypoint_index")
-                    curr_position = boat_data.get("position")
-                    distance_to_next_waypoint = get_distance_to_waypoint(
-                        curr_position, waypoints[index]
-                    )
-                    if distance_to_next_waypoint is None:
-                        print("Error calculating distance to next waypoint.")
-
+            
             for key in self.boat_data_averages.keys():
                 # self.boat_data = data from one iteration in the past
                 # boat_data = data from the current iteration
@@ -1202,7 +1152,7 @@ Motor Temperature: {fix_formatting(boat_data.get("vesc_data_motor_temperature"))
                     ) / 2
 
             telemetry_text = f"""Boat Info:
-Position: {boat_data.get("position", -69.420)[0]:.8f}, {boat_data.get("position", -69.420)[1]:.8f}
+Position: {boat_data.get("position", [-69.420, -69.420])[0]:.8f}, {boat_data.get("position", [-69.420, -69.420])[1]:.8f}
 State: {boat_data.get("state", "N/A")}
 Speed: {boat_data.get("speed", -69.420):.5f} knots
 Distance To Next WP: {fix_formatting(distance_to_next_waypoint)} meters
