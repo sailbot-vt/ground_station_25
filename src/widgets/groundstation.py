@@ -476,8 +476,8 @@ class GroundStationWidget(QWidget):
 
         try:
             remote_waypoints: list[list[float]] = requests.get(
-                constants.TELEMETRY_SERVER_ENDPOINTS["boat_status"]
-            ).json()["current_route"]
+                constants.TELEMETRY_SERVER_ENDPOINTS["get_waypoints"]
+            ).json()
             if remote_waypoints:
                 existing_waypoints = self.waypoints.copy()
                 self.browser.page().runJavaScript("map.clear_waypoints()")
