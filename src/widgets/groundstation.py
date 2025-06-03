@@ -1046,8 +1046,8 @@ class GroundStationWidget(QWidget):
         self,
         boat_data: dict[
             str, Union[float, str, tuple[float, float], list[tuple[float, float]]]
-        ]
-) -> None:
+        ],
+    ) -> None:
         """
         Update telemetry display with boat data.
 
@@ -1128,6 +1128,7 @@ Apparent Wind Angle: {boat_data.get("apparent_wind_angle", -69.420):.5f}°
 Sail Angle: {boat_data.get("sail_angle", -69.420):.5f}°
 Rudder Angle: {boat_data.get("rudder_angle", -69.420):.5f}°
 Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
+Current Route: {boat_data.get("current_route", "N/A")}
 
 VESC Data:
 RPM: {fix_formatting(boat_data.get("vesc_data_rpm"))}
@@ -1165,6 +1166,7 @@ Apparent Wind Angle: {boat_data.get("apparent_wind_angle", -69.420):.5f}°
 Sail Angle: {boat_data.get("sail_angle", -69.420):.5f}°
 Rudder Angle: {boat_data.get("rudder_angle", -69.420):.5f}°
 Current Waypoint Index: {boat_data.get("current_waypoint_index", "N/A")}
+Current Route: {boat_data.get("current_route", "N/A")}
 
 VESC Data:
 RPM: {fix_formatting(self.boat_data_averages.get("vesc_data_rpm"))}
