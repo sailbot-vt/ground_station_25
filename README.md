@@ -1,3 +1,5 @@
+# See [new home for groundstation](https://github.com/sailbot-vt/sailbot_vt/tree/main)
+
 # Ground Station 25 <img src="https://github.com/user-attachments/assets/05a3d1d7-f5c2-4c9b-8a05-54f5ed727f80" alt="logo" width="50"/>
 
 This tool offers an intuitive interface that allows users to monitor telemetry data and set route waypoints while the boat is in operation.
